@@ -3,13 +3,47 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import Home from './routes/Home/Home';
+import Pipes from './routes/Pipes/Pipes';
+import { ThemeProvider } from '@emotion/react';
+import { createTheme } from '@mui/material';
+import Hangman from './routes/Hangman/Hangman';
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <App/>,
+
+    children: [
+      {
+        index: true,
+        element: <Home />
+      },
+      {
+        path: "/hangman",
+        element: <Hangman />
+      },
+      {
+        path: "/pipes",
+        element: <Pipes />
+      }
+    ]
+  }
+])
+
+const root = ReactDOM.createRoot( document.getElementById('root') as HTMLElement );
 root.render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider theme={darkTheme}>
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </React.StrictMode>
 );
 
