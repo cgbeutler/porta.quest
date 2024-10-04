@@ -134,57 +134,59 @@ const Hangman: FunctionComponent = () => {
   }, [secret])
 
   return (
-    <Box sx={{padding: "10px", textAlign:"center"}}>
-      <Typography variant="h2">Hangman</Typography>
-      <Typography>Classic hangman rules. Guess letters. If its the right letter, the letter will be filled in. If you guess wrong, you get one step closer to failure.</Typography>
-      
-      <Box onKeyDown={handleKeydown} tabIndex={0} sx={{display:"flex", flexDirection:"column", justifyContent:"center", minHeight: "75vh", outline: "0px solid transparent"}}>
-        {/* Display */}
-        <Box>
-          <Typography variant="h4" sx={{fontFamily:"monospace", letterSpacing:"4px", color: state === "success" ? "green" : state === "fail" ? "red" : ""}}>
-            {revealed.map( c => (c ?? "_")).join("")}
-          </Typography>
+    <Box className="content">
+      <Box onKeyDown={handleKeydown} tabIndex={0} className="game" sx={{display:"flex", flexDirection:"column", outline: "0px solid transparent"}}>
+        <Typography variant="h2">Hangman</Typography>
+        <Typography>Classic hangman rules. Guess letters. If its the right letter, the letter will be filled in. If you guess wrong, you get one step closer to failure.</Typography>
+        
+        <Box sx={{display:"flex", flexDirection:"column", justifyContent:"center", mt:"auto", mb:"auto"}}>
+          {/* Display */}
+          <Box>
+            <Typography variant="h4" sx={{fontFamily:"monospace", letterSpacing:"4px", color: state === "success" ? "green" : state === "fail" ? "red" : ""}}>
+              {revealed.map( c => (c ?? "_")).join("")}
+            </Typography>
+            {state === "" ?
+              <Typography variant="h6">&nbsp;</Typography>
+            : state === "success" ?
+              <Typography variant="h6" sx={{color: "green"}}>SUCCESS!</Typography>
+            :
+              <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
+            }
+          </Box>
+          {/* Keyboard */}
           {state === "" ?
-            <Typography variant="h6">&nbsp;</Typography>
-          : state === "success" ?
-            <Typography variant="h6" sx={{color: "green"}}>SUCCESS!</Typography>
+            <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
+              {keyboard.map((row, r) =>
+                <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
+                  {row.map(key => (
+                    <Button key={key} variant="outlined" disabled={guessed[key] !== ""} onClick={()=>guess(key)}
+                      sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: guessed[key] === "good" ? "darkgreen" : ""}}>
+                        {key}
+                    </Button>
+                  ))}
+                </Box>
+              )}
+            </Box>
           :
-            <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
+            <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
+              {keyboard.map((row,r) =>
+                <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
+                  {row.map(key => (
+                    <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
+                      sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: guessed[key] === "good" ? "darkgreen" : secret.includes(key) || secret.includes(key.toLocaleLowerCase()) ? "#002200" : guessed[key] === "bad" ? "#220000" : ""}}>
+                        {key}
+                    </Button>
+                  ))}
+                </Box>
+              )}
+            </Box>
           }
+          <Typography variant="h6" sx={{opacity: "50%"}}>
+            {Array.from({length: maxFails}).map( (_,i) => (
+                  <span key={i}>{i < fails ? "💀" : " ● "}</span>
+                ))}
+          </Typography>
         </Box>
-        {/* Keyboard */}
-        {state === "" ?
-          <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
-            {keyboard.map((row, r) =>
-              <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
-                {row.map(key => (
-                  <Button key={key} variant="outlined" disabled={guessed[key] !== ""} onClick={()=>guess(key)}
-                    sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: guessed[key] === "good" ? "darkgreen" : ""}}>
-                      {key}
-                  </Button>
-                ))}
-              </Box>
-            )}
-          </Box>
-        :
-          <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
-            {keyboard.map((row,r) =>
-              <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
-                {row.map(key => (
-                  <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
-                    sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: guessed[key] === "good" ? "darkgreen" : secret.includes(key) || secret.includes(key.toLocaleLowerCase()) ? "#002200" : guessed[key] === "bad" ? "#220000" : ""}}>
-                      {key}
-                  </Button>
-                ))}
-              </Box>
-            )}
-          </Box>
-        }
-        <Typography variant="h6" sx={{opacity: "50%"}}>
-          {Array.from({length: maxFails}).map( (_,i) => (
-                <span key={i}>{i < fails ? "💀" : " ● "}</span>
-              ))}
-        </Typography>
       </Box>
 
       <Box>

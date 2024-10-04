@@ -40,3 +40,12 @@ code {
   justify-content: start;
   gap: 8px;
 }
+
+.content {
+  padding: 10px;
+  text-align: center;
+}
+
+.content > .game {
+  height: calc(100vh - 56px);
+}
