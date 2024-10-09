@@ -1,5 +1,5 @@
 import { Box, Button, ClickAwayListener, IconButton, TextField, Tooltip, Typography } from "@mui/material";
-import React, { FormEvent, FunctionComponent, useEffect, useMemo, useState } from "react";
+import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { phrases } from "./Phrases";
 import CopyIcon from '@mui/icons-material/ContentCopy';
@@ -23,15 +23,16 @@ function cipher( s: string ) { return _shift(s, 1) }
 function decipher( s: string ) { return _shift(s, -1) }
 
 const keyboard = [
-  ["Q","W","E","R","T", "Y","U","I","O","P"],
-  ["A","S","D","F","G", "H","J","K","L"],
-  ["Z","X","C","V","B", "N","M"],
+  ["Q","W","E","R","T","Y","U","I","O","P"],
+  [ "A","S","D","F","G","H","J","K","L"],
+  [     "Z","X","C","V","B","N","M"],
 ]
  
 const Hangman: FunctionComponent = () => {
   let [searchParams, setSearchParams] = useSearchParams()
   let location = useLocation()
   let navigate = useNavigate()
+  let gameRef = useRef<HTMLElement>()
   let secret = useMemo(() => {
     return decipher(searchParams.get("a")??"")
   }, [searchParams])
@@ -94,11 +95,11 @@ const Hangman: FunctionComponent = () => {
     else setRevealed(newRevealed)
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!newSecret) return;
-    setSearchParams({a: cipher(newSecret), g: newMaxFails.toString()});
-  }
+  // function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  //   event.preventDefault();
+  //   if (!newSecret) return;
+  //   setSearchParams({a: cipher(newSecret), g: newMaxFails.toString()});
+  // }
 
   function goRandom() {
     let phrase = phrases[Math.floor(Math.random()*phrases.length)]
@@ -108,6 +109,7 @@ const Hangman: FunctionComponent = () => {
     })
     navigate(url)
     window.scrollTo(0,0)
+    gameRef?.current?.focus()
   }
   
   function handleKeydown(event: React.KeyboardEvent) {
@@ -135,7 +137,7 @@ const Hangman: FunctionComponent = () => {
 
   return (
     <Box className="content">
-      <Box onKeyDown={handleKeydown} tabIndex={0} className="game" sx={{display:"flex", flexDirection:"column", outline: "0px solid transparent"}}>
+      <Box ref={gameRef} onKeyDown={handleKeydown} tabIndex={0} className="game" sx={{display:"flex", flexDirection:"column", outline: "0px solid transparent"}}>
         <Typography variant="h2">Hangman</Typography>
         <Typography>Classic hangman rules. Guess letters. If its the right letter, the letter will be filled in. If you guess wrong, you get one step closer to failure.</Typography>
         
@@ -213,7 +215,7 @@ const Hangman: FunctionComponent = () => {
         <Box className="hbox" sx={{alignItems: "center"}}>
           {newUrl ?
             <>
-              <Button component={Link} to={newUrl} variant="outlined" endIcon={<NorthEastIcon/>} onClick={()=>window.scrollTo(0,0)} sx={{textTransform:"none",lineBreak:"anywhere"}}>{newUrl}</Button>
+              <Button component={Link} to={newUrl} variant="outlined" endIcon={<NorthEastIcon/>} onClick={()=>{window.scrollTo(0,0);gameRef?.current?.focus()}} sx={{textTransform:"none",lineBreak:"anywhere"}}>{newUrl}</Button>
               <ClickAwayListener onClickAway={handleNewCopiedTipClose}>
                 <div>
                   <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleNewCopiedTipClose} open={showNewCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
