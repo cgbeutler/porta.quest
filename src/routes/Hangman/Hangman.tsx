@@ -8,6 +8,7 @@ import { clamp } from "../../lib/helpers/MathHelpers";
 import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
 import { getProp } from "../../lib/helpers/ObjectHelpers";
 import moment from "moment";
+import { copyToClipboard } from "../../lib/helpers/ClipboardHelpers";
 
 const alpha = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 const alphaChars = [...alpha,...alpha.map(c => c.toLocaleLowerCase())]
@@ -80,18 +81,20 @@ const Hangman: FunctionComponent = () => {
   const [showCurrCopied, setShowCurrCopied] = useState(false);
   const handleCurrCopiedTipClose = () => {setShowCurrCopied(false)}
   const copyUrl = (url: string) => {
-    navigator.clipboard.writeText(url)
-    setShowCurrCopied(true)
-    setTimeout(handleCurrCopiedTipClose, 500)
+    if (copyToClipboard(url)) {
+      setShowCurrCopied(true)
+      setTimeout(handleCurrCopiedTipClose, 500)
+    }
   }
   
   const [showNewCopied, setShowNewCopied] = useState(false);
   const handleNewCopiedTipClose = () => {setShowNewCopied(false)}
   const copyNewUrl = () => {
     if (!newUrl) return
-    setShowNewCopied(true)
-    navigator.clipboard.writeText(newUrl)
-    setTimeout(handleNewCopiedTipClose, 500)
+    if (copyToClipboard(newUrl)) {
+      setShowNewCopied(true)
+      setTimeout(handleNewCopiedTipClose, 500)
+    }
   }
 
   function guess(letter: string) {
