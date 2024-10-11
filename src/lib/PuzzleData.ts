@@ -1,5 +1,3 @@
-import { getProp } from "./helpers/ObjectHelpers"
-
 const todaySuffix = "_today"
 const somedaySuffix = "_someday"
 const customSuffix = "_custom"
