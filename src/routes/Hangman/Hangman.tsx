@@ -1,10 +1,13 @@
-import { Box, Button, ClickAwayListener, IconButton, TextField, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Checkbox, ClickAwayListener, FormControlLabel, IconButton, TextField, Tooltip, Typography } from "@mui/material";
 import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { phrases } from "./Phrases";
 import CopyIcon from '@mui/icons-material/ContentCopy';
 import NorthEastIcon from '@mui/icons-material/NorthEast';
 import { clamp } from "../../lib/helpers/MathHelpers";
+import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
+import { getProp } from "../../lib/helpers/ObjectHelpers";
+import moment from "moment";
 
 const alpha = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 const alphaChars = [...alpha,...alpha.map(c => c.toLocaleLowerCase())]
@@ -14,7 +17,6 @@ function _shift( s: string, d: 1|-1 ) {
     if (original_i < 0) return c
     let new_i = (original_i + d*((c_i%2?-1:1)*13 + c_i)) % alphaChars.length
     if (new_i < 0) new_i += alphaChars.length
-    console.log(alphaChars[new_i])
     return alphaChars[new_i]
   } ).join("")
   return result
@@ -27,28 +29,40 @@ const keyboard = [
   [ "A","S","D","F","G","H","J","K","L"],
   [     "Z","X","C","V","B","N","M"],
 ]
+
+const day = moment().diff(moment([2024,9,10], true).local(), "days")
  
 const Hangman: FunctionComponent = () => {
-  let [searchParams, setSearchParams] = useSearchParams()
+  let [searchParams] = useSearchParams()
   let location = useLocation()
   let navigate = useNavigate()
   let gameRef = useRef<HTMLElement>()
-  let secret = useMemo(() => {
-    return decipher(searchParams.get("a")??"")
+
+  let [puzzle, puzzleNumber, maxFails] = useMemo(() => {
+    let guesses = Number.parseInt(searchParams.get("g") ?? "6")??6
+    let cipheredPuzzle = searchParams.get("a")
+    if (cipheredPuzzle) return [decipher(cipheredPuzzle), -1, guesses]
+    let puzzleNumberRaw = searchParams.get("n")
+    let puzzleNumber = puzzleNumberRaw ? Number.parseInt(puzzleNumberRaw) : NaN;
+    if (!Number.isInteger(puzzleNumber)) puzzleNumber = day
+    let index = puzzleNumber % phrases.length
+    if (index < 0) index += phrases.length
+    return [phrases[index], puzzleNumber, guesses]
   }, [searchParams])
-  let maxFails = useMemo(() => {
-    return Number.parseInt(searchParams.get("g") ?? "6")??6
-  }, [searchParams])
-  let [guessed, setGuessed] = useState<{[key:string]:""|"good"|"bad"}>({})
+
+  let [guessed, setGuessed] = useState<{[key:string]:undefined|1|-1}>({})
   let [revealed, setRevealed] = useState<(string|undefined)[]>([])
   let [fails, setFails] = useState(0)
   let state: ""|"success"|"fail" = useMemo(() => {
-    if (revealed.some(c => c === undefined)) {
+    if (revealed.some((c: string|undefined) => c === undefined)) {
       if (fails >= maxFails) return "fail"
       return ""
     }
     return "success"
   }, [fails, maxFails, revealed])
+  let resultString = useMemo(() => Array.from({length: maxFails}).map( (_,i) => i < fails ? "💀" : "💙").join(""),
+    [fails, maxFails]
+  )
   
   let [newSecret, setNewSecret] = useState("")
   let [newMaxFails, setNewMaxFails] = useState(6)
@@ -61,10 +75,12 @@ const Hangman: FunctionComponent = () => {
   }, [location.pathname, newSecret, newMaxFails])
   
   
+  const [alsoShareLink, setAlsoShareLink] = useState(false)
+
   const [showCurrCopied, setShowCurrCopied] = useState(false);
   const handleCurrCopiedTipClose = () => {setShowCurrCopied(false)}
-  const copyCurrentUrl = () => {
-    navigator.clipboard.writeText(window.location.href)
+  const copyUrl = (url: string) => {
+    navigator.clipboard.writeText(url)
     setShowCurrCopied(true)
     setTimeout(handleCurrCopiedTipClose, 500)
   }
@@ -81,32 +97,24 @@ const Hangman: FunctionComponent = () => {
   function guess(letter: string) {
     if (state !== "") return // Game is over
     letter = letter.toUpperCase()
-    if (Object.hasOwn(guessed, letter) && ["good","bad"].includes(guessed[letter])) return // Already Guessed
+    let g = getProp(guessed, letter, undefined)
+    if (g !== undefined) return // Already Guessed
     let newRevealed = [...revealed];
     let found = false
-    secret.split("").forEach((v,i) => {
+    puzzle.split("").forEach((v,i) => {
       if (v.toUpperCase() === letter) {
         newRevealed[i] = v
         found = true
       }
     })
-    setGuessed({...guessed, [letter]: found ? "good" : "bad"})
+    setGuessed({...guessed, [letter]: found ? 1 : -1})
     if (!found) setFails(fails+1)
     else setRevealed(newRevealed)
   }
 
-  // function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  //   event.preventDefault();
-  //   if (!newSecret) return;
-  //   setSearchParams({a: cipher(newSecret), g: newMaxFails.toString()});
-  // }
-
   function goRandom() {
-    let phrase = phrases[Math.floor(Math.random()*phrases.length)]
-    let url = location.pathname + "?" + new URLSearchParams({
-      a: cipher(phrase),
-      g: clamp(newMaxFails,1).toString()
-    })
+    let phrase = Math.floor(Math.random()*phrases.length)
+    let url = location.pathname + "?" + new URLSearchParams({ n: phrase.toString() })
     navigate(url)
     window.scrollTo(0,0)
     gameRef?.current?.focus()
@@ -120,20 +128,41 @@ const Hangman: FunctionComponent = () => {
   }
 
   useEffect(()=>{
-    if (!searchParams.get("a")) {
-      let phrase = phrases[Math.floor(Math.random()*phrases.length)]
-      setSearchParams({a: cipher(phrase), g: "6"})
-    }
+    
   })
 
-  useEffect(()=>{
-    setGuessed(Object.fromEntries(alpha.map(v => [v, ""])))
-    setRevealed(secret.split("").map(c => {
-      if (alphaChars.includes(c)) return undefined
-      return c
-    }))
-    setFails(0)
-  }, [secret])
+  const saveKey = "hangman"
+  let [puzzleToSave, puzzleNumberToSave] = useMemo(()=>{
+    let saveData = loadPuzzleData(puzzle, puzzleNumber, day, saveKey)
+    if (saveData) {
+      let guessed = getProp( saveData, "guessed", {})
+      console.log("guessed: ", Object.entries(guessed))
+      setGuessed(guessed)
+      // Reveal what's been guessed
+      setRevealed(puzzle.split("").map((c: string) => {
+        if (!alphaChars.includes(c)) return c
+        let g = getProp(guessed, c.toUpperCase(), undefined)
+        if (g === 1 || g === -1) return c
+        return undefined
+      }))
+      // Total up failures
+      setFails(Object.entries(guessed).reduce((total,[_,val]) => val === -1 ? total+1 : total, 0))
+    }
+    else {
+      // Reset everything for a fresh start
+      setGuessed({})
+      setRevealed(puzzle.split("").map((c: string) => {
+        if (!alphaChars.includes(c)) return c
+        return undefined
+      }))
+      setFails(0)
+    }
+    return [puzzle, puzzleNumber]
+  }, [puzzle, puzzleNumber])
+
+  useEffect(() => {
+    if (Object.entries(guessed).length > 0) savePuzzleData({guessed}, puzzleToSave, puzzleNumberToSave, day, saveKey)
+  }, [guessed, puzzleToSave, puzzleNumberToSave])
 
   return (
     <Box className="content">
@@ -155,17 +184,24 @@ const Hangman: FunctionComponent = () => {
               <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
             }
           </Box>
+          {/* Results */}
+          <Typography variant="h6" sx={{opacity: "50%", mb: "12px"}}>
+            {resultString}
+          </Typography>
           {/* Keyboard */}
           {state === "" ?
             <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
               {keyboard.map((row, r) =>
                 <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
-                  {row.map(key => (
-                    <Button key={key} variant="outlined" disabled={guessed[key] !== ""} onClick={()=>guess(key)}
-                      sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: guessed[key] === "good" ? "darkgreen" : ""}}>
-                        {key}
-                    </Button>
-                  ))}
+                  {row.map(key => {
+                    let g = getProp(guessed,key,0)
+                    return (
+                      <Button key={key} variant="outlined" disabled={ g !== 0} onClick={()=>guess(key)}
+                        sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : ""}}>
+                          {key}
+                      </Button>
+                    )
+                  })}
                 </Box>
               )}
             </Box>
@@ -173,41 +209,51 @@ const Hangman: FunctionComponent = () => {
             <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
               {keyboard.map((row,r) =>
                 <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
-                  {row.map(key => (
-                    <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
-                      sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: guessed[key] === "good" ? "darkgreen" : secret.includes(key) || secret.includes(key.toLocaleLowerCase()) ? "#002200" : guessed[key] === "bad" ? "#220000" : ""}}>
-                        {key}
-                    </Button>
-                  ))}
+                  {row.map(key => {
+                    let g = getProp(guessed,key,0)
+                    return (
+                      <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
+                        sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "#002200" : g === -1 ? "#220000" : ""}}>
+                          {key}
+                      </Button>
+                    )
+                  })}
                 </Box>
               )}
             </Box>
           }
-          <Typography variant="h6" sx={{opacity: "50%"}}>
-            {Array.from({length: maxFails}).map( (_,i) => (
-                  <span key={i}>{i < fails ? "💀" : " ● "}</span>
-                ))}
-          </Typography>
         </Box>
       </Box>
 
       <Box>
-        <Typography variant="h5">SHARE</Typography>
+        <Typography variant="h5" sx={{textTransform: "uppercase"}}>Share</Typography>
         <ClickAwayListener onClickAway={handleCurrCopiedTipClose}>
           <div>
             <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleCurrCopiedTipClose} open={showCurrCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
-              <Button variant="outlined" onClick={copyCurrentUrl} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>{window.location.href}</Button>
+              { state === "" ?
+                alsoShareLink ?
+                  <Button variant="outlined" onClick={()=>copyUrl(window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>{window.location.href}</Button>
+                : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Puzzle Incomplete</Button>
+              : puzzleNumber !== -1 ?
+                alsoShareLink ?
+                  <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString} {window.location.href}</Button>
+                : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString}</Button>
+              : alsoShareLink ?
+                <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString} {window.location.href}</Button>
+              : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString}</Button>
+              }
             </Tooltip>
           </div>
         </ClickAwayListener>
+        <FormControlLabel label="Include Link" control={<Checkbox checked={alsoShareLink} onChange={(e)=>setAlsoShareLink(e.target.checked)} />} />
       </Box>
 
       <hr style={{margin:"24px 0px"}}/>
 
       <Box className="vbox" sx={{display:"flex", flexDirection:"column"}}>
-        <Typography variant="h5">CREATE</Typography>
-        <Button variant="outlined" onClick={goRandom} endIcon={<NorthEastIcon/>} sx={{mb:"8px"}}>RANDOM</Button>
-        <Typography>Fully Customized</Typography>
+        <Typography variant="h5" sx={{textTransform: "uppercase"}}>New Puzzle</Typography>
+        <Button variant="outlined" onClick={goRandom} endIcon={<NorthEastIcon/>} sx={{mb:"8px", textTransform: "uppercase"}}>Random Day</Button>
+        <Typography>Create your own</Typography>
         <form className="hbox">
           <TextField label="Max Fails" type="number" value={newMaxFails} onChange={(e)=>setNewMaxFails(Number.parseInt(e.target.value))} sx={{width:"5em"}}/>
           <TextField label="Answer" value={newSecret} onChange={(e)=>setNewSecret(e.target.value)}/>
