@@ -30,13 +30,13 @@ function App() {
       <Toolbar/>
       <Outlet/>
       <Drawer open={isOpen} onClose={close} sx={{"& .MuiBackdrop-root": {bgcolor:"rgba(0,0,0,0.75)"}, "& .MuiPaper-root": {bgcolor:"#050505"}}}>
-        <Box className="vbox" sx={{alignItems:"start", p:"8px", gap: "0px"}}>
-          <Button component={Link} to="/" onClick={close} color='inherit' className="hbox" sx={{textTransform:"none", alignItems: "center"}}>
+        <Box className="vbox" sx={{alignItems:"stretch", p:"8px", gap: "0px"}}>
+          <Button component={Link} to="/" onClick={close} color='inherit' className="hbox" sx={{textTransform:"none", justifyContent: "start", alignItems: "center"}}>
             <img src="/favicon.svg" alt='' style={{height: "3rem", marginRight: "4px"}}/>
             <Typography variant="h4">Porta.Quest</Typography>
           </Button>
           <hr style={{borderColor:"#808080",width:"50%"}}/>
-          <Button component={Link} to="/hangman" onClick={close} color='inherit' className="hbox" sx={{textTransform:"none", alignItems: "center"}}>
+          <Button component={Link} to="/hangman" onClick={close} color='inherit' className="hbox" sx={{textTransform:"none", justifyContent: "start", alignItems: "center"}}>
             <img src="/hangman_icon.svg" alt='' style={{height: "3rem", marginRight: "4px"}}/>
             <Typography variant="h4" sx={{pt:"3px"}}>Hangman</Typography>
           </Button>
