@@ -115,12 +115,16 @@ const Hangman: FunctionComponent = () => {
     else setRevealed(newRevealed)
   }
 
+  function resetScroll() {
+    window.scrollTo(0,0)
+    gameRef?.current?.focus()
+  }
+
   function goRandom() {
     let phrase = Math.floor(Math.random()*phrases.length)
     let url = location.pathname + "?" + new URLSearchParams({ n: phrase.toString() })
     navigate(url)
-    window.scrollTo(0,0)
-    gameRef?.current?.focus()
+    resetScroll()
   }
   
   function handleKeydown(event: React.KeyboardEvent) {
@@ -255,7 +259,10 @@ const Hangman: FunctionComponent = () => {
 
       <Box className="vbox" sx={{display:"flex", flexDirection:"column"}}>
         <Typography variant="h5" sx={{textTransform: "uppercase"}}>New Puzzle</Typography>
-        <Button variant="outlined" onClick={goRandom} endIcon={<NorthEastIcon/>} sx={{mb:"8px", textTransform: "uppercase"}}>Random Day</Button>
+        <Box className="hbox">
+          <Button component={Link} to="/hangman" variant="outlined" onClick={resetScroll} endIcon={<NorthEastIcon/>} disabled={puzzleNumber===day} sx={{mb:"8px", textTransform: "uppercase"}}>Today</Button>
+          <Button variant="outlined" onClick={goRandom} endIcon={<NorthEastIcon/>} sx={{mb:"8px", textTransform: "uppercase"}}>Random Day</Button>
+        </Box>
         <Typography>Create your own</Typography>
         <form className="hbox">
           <TextField label="Max Fails" type="number" value={newMaxFails} onChange={(e)=>setNewMaxFails(Number.parseInt(e.target.value))} sx={{width:"5em"}}/>
@@ -264,7 +271,7 @@ const Hangman: FunctionComponent = () => {
         <Box className="hbox" sx={{alignItems: "center"}}>
           {newUrl ?
             <>
-              <Button component={Link} to={newUrl} variant="outlined" endIcon={<NorthEastIcon/>} onClick={()=>{window.scrollTo(0,0);gameRef?.current?.focus()}} sx={{textTransform:"none",lineBreak:"anywhere"}}>{newUrl}</Button>
+              <Button component={Link} to={newUrl} variant="outlined" endIcon={<NorthEastIcon/>} onClick={resetScroll} sx={{textTransform:"none",lineBreak:"anywhere"}}>{newUrl}</Button>
               <ClickAwayListener onClickAway={handleNewCopiedTipClose}>
                 <div>
                   <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleNewCopiedTipClose} open={showNewCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
