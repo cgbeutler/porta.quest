@@ -174,7 +174,10 @@ const Hangman: FunctionComponent = () => {
   return (
     <Box className="content">
       <Box ref={gameRef} onKeyDown={handleKeydown} tabIndex={0} className="game" sx={{display:"flex", flexDirection:"column", outline: "0px solid transparent"}}>
-        <Typography variant="h2">Hangman</Typography>
+        <Box className="hbox" sx={{alignItems: "center"}}>
+          <img src="/hangman_icon.svg" style={{height: "3rem", marginRight: "8px"}}/>
+          <Typography variant="h2">Hangman</Typography>
+        </Box>
         <Typography>Classic hangman rules. Guess letters. If its the right letter, the letter will be filled in. If you guess wrong, you get one step closer to failure.</Typography>
         
         <Box sx={{display:"flex", flexDirection:"column", justifyContent:"center", mt:"auto", mb:"auto"}}>
