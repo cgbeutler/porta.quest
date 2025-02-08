@@ -42,7 +42,9 @@ const root = ReactDOM.createRoot( document.getElementById('root') as HTMLElement
 root.render(
   <React.StrictMode>
     <ThemeProvider theme={darkTheme}>
-      <RouterProvider router={router} />
+      <SettingsProvider>
+        <RouterProvider router={router} />
+      </SettingsProvider>
     </ThemeProvider>
   </React.StrictMode>
 );

@@ -1,53 +1,124 @@
-import { Box, Button, Checkbox, ClickAwayListener, FormControlLabel, IconButton, TextField, Tooltip, Typography } from "@mui/material";
-import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { phrases } from "./Phrases";
+﻿import {
+  Box,
+  Button,
+  Checkbox,
+  ClickAwayListener,
+  FormControlLabel,
+  IconButton,
+  TextField,
+  Tooltip,
+  Typography
+} from "@mui/material";
+import React, {FunctionComponent, useEffect, useMemo, useRef, useState} from "react";
+import {Link, useLocation, useNavigate, useSearchParams} from "react-router-dom";
 import CopyIcon from '@mui/icons-material/ContentCopy';
 import NorthEastIcon from '@mui/icons-material/NorthEast';
-import { clamp } from "../../lib/helpers/MathHelpers";
-import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
-import { getProp } from "../../lib/helpers/ObjectHelpers";
-import { copyToClipboard } from "../../lib/helpers/ClipboardHelpers";
-import {alpha, keyboardUpper} from "../../lib/helpers/AlphabetHelpers";
-import {cipher, decipher} from "../../lib/helpers/CipherHelpers";
+import {clamp} from "../../lib/helpers/MathHelpers";
+import {loadPuzzleData, savePuzzleData} from "../../lib/PuzzleData";
+import {getProp} from "../../lib/helpers/ObjectHelpers";
+import {copyToClipboard} from "../../lib/helpers/ClipboardHelpers";
+import {alpha, cipher, decipher} from "../../lib/helpers/CipherHelpers";
+import {keyboardUpper} from "../../lib/helpers/AlphabetHelpers";
 import {daysSince} from "../../lib/helpers/DateHelpers";
-import { useSettings } from "../../lib/SettingsProvider";
+import {getDictionaries, getDictionary} from "../../lib/Dictionaries";
+import {getLine, getLineWrap} from "../../lib/helpers/StringHelpers";
+import {psudorand} from "../../lib/helpers/RandomHelpers";
 
 const day = daysSince(2024, 9, 10)
- 
-const Hangman: FunctionComponent = () => {
-  const settings = useSettings();
-  let [searchParams] = useSearchParams()
-  let location = useLocation()
-  let navigate = useNavigate()
-  let gameRef = useRef<HTMLElement>()
 
-  let [puzzle, puzzleNumber, maxFails] = useMemo(() => {
+const Yordle: FunctionComponent = () => {
+  const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const gameRef = useRef<HTMLElement>()
+
+  const [loading, setLoading] = useState(true)
+  const [dictionary, setDictionary] = useState<string|undefined>()
+  const [puzzle, setPuzzle] = useState<string|undefined>()
+  const [puzzleNumber, setPuzzleNumber] = useState<number|undefined>()
+  const [maxFails, setMaxFails] = useState<number|undefined>()
+  const [guesses, setGuesses] = useState<string[]>([])
+  const [alsoShareLink, setAlsoShareLink] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    // See if we have a specific puzzle
     let guesses = Number.parseInt(searchParams.get("g") ?? "6")??6
     let cipheredPuzzle = searchParams.get("a")
-    if (cipheredPuzzle) return [decipher(cipheredPuzzle), -1, guesses]
+    if (cipheredPuzzle) {
+      // Load puzzle from query string
+      let dictFile = ""
+      if (cipheredPuzzle.length >= 3 && cipheredPuzzle.length < 13 ) dictFile = `dictionary${cipheredPuzzle.length}.txt`
+      else if (cipheredPuzzle.length >= 13) dictFile = "dictionary13plus.txt"
+      const clearPuzzle = decipher(cipheredPuzzle)
+      if (dictFile) getDictionary(dictFile).then(d => {
+        setDictionary(d)
+        setPuzzle(clearPuzzle)
+        setPuzzleNumber(-1)
+        setMaxFails(guesses)
+        setLoading(false)
+      }).catch(() => {
+        setDictionary(undefined)
+        setPuzzle(undefined)
+        setPuzzleNumber(undefined)
+        setMaxFails(undefined)
+        setLoading(false)
+      })
+      return
+    }
+    // Load the day-number's puzzle
     let puzzleNumberRaw = searchParams.get("n")
     let puzzleNumber = puzzleNumberRaw ? Number.parseInt(puzzleNumberRaw) : NaN;
+    // If no number, use today's puzzle
     if (!Number.isInteger(puzzleNumber)) puzzleNumber = day
-    let index = puzzleNumber % phrases.length
-    if (index < 0) index += phrases.length
-    return [phrases[index], puzzleNumber, guesses]
+    getDictionaries([`common_words5.txt`, `dictionary5.txt`]).then(d => {
+      const commonWords = d[`common_words5.txt`]
+      const puzzle = getLineWrap(commonWords, psudorand(puzzleNumber))
+      const yesterday = getLineWrap(commonWords, psudorand(puzzleNumber-1))
+      setDictionary(d[`dictionary5.txt`])
+      setPuzzle(puzzle)
+      setPuzzleNumber(puzzleNumber)
+      setMaxFails(guesses)
+      setLoading(false)
+      setGuesses([yesterday])
+    }).catch(() => {
+      setDictionary(undefined)
+      setPuzzle(undefined)
+      setPuzzleNumber(undefined)
+      setMaxFails(undefined)
+      setLoading(false)
+    })
   }, [searchParams])
 
-  let [guessed, setGuessed] = useState<{[key:string]:undefined|1|-1}>({})
-  let [revealed, setRevealed] = useState<(string|undefined)[]>([])
-  let [fails, setFails] = useState(0)
   let state: ""|"success"|"fail" = useMemo(() => {
-    if (revealed.some((c: string|undefined) => c === undefined)) {
-      if (fails >= maxFails) return "fail"
-      return ""
+    if (loading || !puzzle || !maxFails) return ""
+    if (guesses.some(c => c === puzzle)) return "success"
+    if (guesses.length >= maxFails) return "fail"
+    return ""
+  }, [loading, guesses, puzzle, maxFails])
+  let rowResults = useMemo(() => {
+    if (loading || !puzzle || !maxFails) return []
+    const results: string[] = []
+    for (const guess in guesses) {
+      let result: string = "" 
+      for (let i = 0; i < guess.length; i++) {
+        const letter = guess[i]
+        if (puzzle[i] === letter) result += "🟩"
+        if (puzzle.includes(letter)) result += "🟨"
+        else result += "⬛"
+      }
+      results.push(result)
     }
-    return "success"
-  }, [fails, maxFails, revealed])
-  let resultString = useMemo(() => Array.from({length: maxFails}).map( (_,i) => i < fails ? "💀" : "💙").join(""),
-    [fails, maxFails]
-  )
-  
+    return results
+  }, [loading, guesses, puzzle, maxFails])
+  let resultString = useMemo(() => {
+    if (loading || !puzzle || !maxFails || state === "") return ""
+    let result = `Yordle #${puzzleNumber} ${rowResults.length}/${maxFails}\n${rowResults.join("\n")}`
+    if (state === "fail") result += "💀"
+    if (alsoShareLink) result += `\n${window.location.href}`
+    return result
+  }, [alsoShareLink, loading, puzzle, maxFails, state, puzzleNumber, rowResults])
+
   let [newSecret, setNewSecret] = useState("")
   let [newMaxFails, setNewMaxFails] = useState(6)
   let newUrl = useMemo(()=>{
@@ -66,7 +137,7 @@ const Hangman: FunctionComponent = () => {
       setTimeout(handleCurrCopiedTipClose, 500)
     }
   }
-  
+
   const [showNewCopied, setShowNewCopied] = useState(false);
   const handleNewCopiedTipClose = () => {setShowNewCopied(false)}
   const copyNewUrl = () => {
@@ -77,22 +148,14 @@ const Hangman: FunctionComponent = () => {
     }
   }
 
-  function guess(letter: string) {
+  function guess(word: string) {
     if (state !== "") return // Game is over
-    letter = letter.toUpperCase()
-    let g = getProp(guessed, letter, undefined)
-    if (g !== undefined) return // Already Guessed
-    let newRevealed = [...revealed];
-    let found = false
-    puzzle.split("").forEach((v,i) => {
-      if (v.toUpperCase() === letter) {
-        newRevealed[i] = v
-        found = true
-      }
-    })
-    setGuessed({...guessed, [letter]: found ? 1 : -1})
-    if (!found) setFails(fails+1)
-    else setRevealed(newRevealed)
+    word = word.toUpperCase()
+    for (let guess in guesses) {
+      if (guess === word) return // Already Guessed
+      // TODO: Show error of already guessed
+    }
+    setGuesses(guesses.concat([word]))
   }
 
   function resetScroll() {
@@ -101,12 +164,12 @@ const Hangman: FunctionComponent = () => {
   }
 
   function goRandom() {
-    let phrase = Math.floor(Math.random()*phrases.length)
+    let phrase = Math.floor(Math.random() * phrases.length)
     let url = location.pathname + "?" + new URLSearchParams({ n: phrase.toString() })
     navigate(url)
     resetScroll()
   }
-  
+
   function handleKeydown(event: React.KeyboardEvent) {
     if (event.key.length !== 1) return // May be "Dead" or other special values
     if (event.key >= 'A' && event.key <= 'Z') guess(event.key)
@@ -115,7 +178,7 @@ const Hangman: FunctionComponent = () => {
   }
 
   useEffect(()=>{
-    
+
   })
 
   const saveKey = "hangman"
@@ -148,8 +211,8 @@ const Hangman: FunctionComponent = () => {
   }, [puzzle, puzzleNumber])
 
   useEffect(() => {
-    if (Object.entries(guessed).length > 0) savePuzzleData({guessed}, puzzleToSave, puzzleNumberToSave, day, saveKey)
-  }, [guessed, puzzleToSave, puzzleNumberToSave])
+    if (Object.entries(guesses).length > 0) savePuzzleData({guesses}, puzzleToSave, puzzleNumberToSave, day, saveKey)
+  }, [guesses, puzzleToSave, puzzleNumberToSave])
 
   return (
     <Box className="content">
@@ -159,7 +222,7 @@ const Hangman: FunctionComponent = () => {
           <Typography variant="h2">Hangman</Typography>
         </Box>
         <Typography>Classic hangman rules. Guess letters. If its the right letter, the letter will be filled in. If you guess wrong, you get one step closer to failure.</Typography>
-        
+
         <Box sx={{display:"flex", flexDirection:"column", justifyContent:"center", mt:"auto", mb:"auto"}}>
           {/* Display */}
           <Box>
@@ -168,10 +231,10 @@ const Hangman: FunctionComponent = () => {
             </Typography>
             {state === "" ?
               <Typography variant="h6">&nbsp;</Typography>
-            : state === "success" ?
-              <Typography variant="h6" sx={{color: "green"}}>SUCCESS!</Typography>
-            :
-              <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
+              : state === "success" ?
+                <Typography variant="h6" sx={{color: "green"}}>SUCCESS!</Typography>
+                :
+                <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
             }
           </Box>
           {/* Results */}
@@ -187,15 +250,15 @@ const Hangman: FunctionComponent = () => {
                     let g = getProp(guessed,key,0)
                     return (
                       <Button key={key} variant="outlined" disabled={ g !== 0} onClick={()=>guess(key)}
-                        sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : ""}}>
-                          {key}
+                              sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : ""}}>
+                        {key}
                       </Button>
                     )
                   })}
                 </Box>
               )}
             </Box>
-          :
+            :
             <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
               {keyboardUpper.map((row,r) =>
                 <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
@@ -203,8 +266,8 @@ const Hangman: FunctionComponent = () => {
                     let g = getProp(guessed,key,0)
                     return (
                       <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
-                        sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "#002200" : g === -1 ? "#220000" : ""}}>
-                          {key}
+                              sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "#002200" : g === -1 ? "#220000" : ""}}>
+                        {key}
                       </Button>
                     )
                   })}
@@ -221,21 +284,21 @@ const Hangman: FunctionComponent = () => {
           <div>
             <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleCurrCopiedTipClose} open={showCurrCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
               { state === "" ?
-                settings.value.alsoShareLink ?
+                alsoShareLink ?
                   <Button variant="outlined" onClick={()=>copyUrl(window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>{window.location.href}</Button>
-                : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Puzzle Incomplete</Button>
-              : puzzleNumber !== -1 ?
-                settings.value.alsoShareLink ?
-                  <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString} {window.location.href}</Button>
-                : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString}</Button>
-              : settings.value.alsoShareLink ?
-                <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString} {window.location.href}</Button>
-              : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString}</Button>
+                  : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Puzzle Incomplete</Button>
+                : puzzleNumber !== -1 ?
+                  alsoShareLink ?
+                    <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString} {window.location.href}</Button>
+                    : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString}</Button>
+                  : alsoShareLink ?
+                    <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString} {window.location.href}</Button>
+                    : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString}</Button>
               }
             </Tooltip>
           </div>
         </ClickAwayListener>
-        <FormControlLabel label="Include Link" control={<Checkbox checked={settings.value.alsoShareLink} onChange={(e)=>settings.update({alsoShareLink: e.target.checked})} />} />
+        <FormControlLabel label="Include Link" control={<Checkbox checked={alsoShareLink} onChange={(e)=>setAlsoShareLink(e.target.checked)} />} />
       </Box>
 
       <hr style={{margin:"24px 0px"}}/>
@@ -263,7 +326,7 @@ const Hangman: FunctionComponent = () => {
                 </div>
               </ClickAwayListener>
             </>
-          :
+            :
             <>
               <Button variant="outlined" endIcon={<NorthEastIcon/>} sx={{textTransform:"none"}} disabled>Invalid</Button>
               <IconButton aria-label="copy" onClick={()=>{}} disabled><CopyIcon/></IconButton>
@@ -274,5 +337,5 @@ const Hangman: FunctionComponent = () => {
     </Box>
   );
 }
- 
-export default Hangman;
+
+export default Yordle;
