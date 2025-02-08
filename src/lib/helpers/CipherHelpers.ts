@@ -1,4 +1,4 @@
-﻿import { alpha } from "./AlphabetHelpers";
+import { alpha } from "./AlphabetHelpers";
 
 function _shift( s: string, d: 1|-1 ) {
   return s.split("").map((c, c_i) => {
