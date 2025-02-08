@@ -9,6 +9,8 @@ import Pipes from './routes/Pipes/Pipes';
 import { ThemeProvider } from '@emotion/react';
 import { createTheme } from '@mui/material';
 import Hangman from './routes/Hangman/Hangman';
+import Tordle from "./routes/Tordle/Tordle";
+import SettingsProvider from './lib/SettingsProvider';
 
 const darkTheme = createTheme({
   palette: {
@@ -33,6 +35,10 @@ const router = createBrowserRouter([
       {
         path: "/pipes",
         element: <Pipes />
+      },
+      {
+        path: "/tordle",
+        element: <Tordle />
       }
     ]
   }

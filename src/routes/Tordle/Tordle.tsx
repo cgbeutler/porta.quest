@@ -1,4 +1,6 @@
-﻿import {
+﻿import CopyIcon from '@mui/icons-material/ContentCopy';
+import NorthEastIcon from '@mui/icons-material/NorthEast';
+import {
   Box,
   Button,
   Checkbox,
@@ -9,32 +11,35 @@
   Tooltip,
   Typography
 } from "@mui/material";
-import React, {FunctionComponent, useEffect, useMemo, useRef, useState} from "react";
-import {Link, useLocation, useNavigate, useSearchParams} from "react-router-dom";
-import CopyIcon from '@mui/icons-material/ContentCopy';
-import NorthEastIcon from '@mui/icons-material/NorthEast';
-import {clamp} from "../../lib/helpers/MathHelpers";
-import {loadPuzzleData, savePuzzleData} from "../../lib/PuzzleData";
-import {getProp} from "../../lib/helpers/ObjectHelpers";
-import {copyToClipboard} from "../../lib/helpers/ClipboardHelpers";
-import {alpha, cipher, decipher} from "../../lib/helpers/CipherHelpers";
-import {keyboardUpper} from "../../lib/helpers/AlphabetHelpers";
-import {daysSince} from "../../lib/helpers/DateHelpers";
-import {getDictionaries, getDictionary} from "../../lib/Dictionaries";
-import {getLine, getLineWrap} from "../../lib/helpers/StringHelpers";
-import {psudorand} from "../../lib/helpers/RandomHelpers";
+import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { getDictionaries, getDictionary } from "../../lib/Dictionaries";
+import { keyboardUpper } from "../../lib/helpers/AlphabetHelpers";
+import { cipher, decipher } from "../../lib/helpers/CipherHelpers";
+import { copyToClipboard } from "../../lib/helpers/ClipboardHelpers";
+import { daysSince } from "../../lib/helpers/DateHelpers";
+import { clamp } from "../../lib/helpers/MathHelpers";
+import { getProp } from "../../lib/helpers/ObjectHelpers";
+import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
+import { Dictionary } from '../../lib/helpers/Dictionary';
 
+const NUM_COMMON_WORDS = 2296;
+const HIT = "🟩"
+const ALMOST = "🟨"
+const MISS = "⬛"
 const day = daysSince(2024, 9, 10)
 
-const Yordle: FunctionComponent = () => {
+const Tordle: FunctionComponent = () => {
   const [searchParams] = useSearchParams()
   const location = useLocation()
   const navigate = useNavigate()
   const gameRef = useRef<HTMLElement>()
 
   const [loading, setLoading] = useState(true)
-  const [dictionary, setDictionary] = useState<string|undefined>()
+  const [commonWords, setCommonWords] = useState<Dictionary|undefined>()
+  const [dictionary, setDictionary] = useState<Dictionary|undefined>()
   const [puzzle, setPuzzle] = useState<string|undefined>()
+  const [yesterdaysPuzzle, setYesterdaysPuzzle] = useState<string|undefined>()
   const [puzzleNumber, setPuzzleNumber] = useState<number|undefined>()
   const [maxFails, setMaxFails] = useState<number|undefined>()
   const [guesses, setGuesses] = useState<string[]>([])
@@ -52,7 +57,7 @@ const Yordle: FunctionComponent = () => {
       else if (cipheredPuzzle.length >= 13) dictFile = "dictionary13plus.txt"
       const clearPuzzle = decipher(cipheredPuzzle)
       if (dictFile) getDictionary(dictFile).then(d => {
-        setDictionary(d)
+        setDictionary(new Dictionary(d))
         setPuzzle(clearPuzzle)
         setPuzzleNumber(-1)
         setMaxFails(guesses)
@@ -72,11 +77,13 @@ const Yordle: FunctionComponent = () => {
     // If no number, use today's puzzle
     if (!Number.isInteger(puzzleNumber)) puzzleNumber = day
     getDictionaries([`common_words5.txt`, `dictionary5.txt`]).then(d => {
-      const commonWords = d[`common_words5.txt`]
-      const puzzle = getLineWrap(commonWords, psudorand(puzzleNumber))
-      const yesterday = getLineWrap(commonWords, psudorand(puzzleNumber-1))
-      setDictionary(d[`dictionary5.txt`])
+      const commonWords = new Dictionary(d[`common_words5.txt`])
+      const puzzle = commonWords.psudorandomWord(puzzleNumber)
+      const yesterday = commonWords.psudorandomWord(puzzleNumber - 1)
+      setCommonWords(commonWords)
+      setDictionary(new Dictionary(d[`dictionary5.txt`]))
       setPuzzle(puzzle)
+      setYesterdaysPuzzle(yesterday)
       setPuzzleNumber(puzzleNumber)
       setMaxFails(guesses)
       setLoading(false)
@@ -103,9 +110,10 @@ const Yordle: FunctionComponent = () => {
       let result: string = "" 
       for (let i = 0; i < guess.length; i++) {
         const letter = guess[i]
-        if (puzzle[i] === letter) result += "🟩"
-        if (puzzle.includes(letter)) result += "🟨"
-        else result += "⬛"
+        if (puzzle[i] === letter) result += HIT
+        else if (puzzle.includes(letter)) result += ALMOST
+        else result += MISS
+        // TODO: We forgot the duplicate letter rule, I think
       }
       results.push(result)
     }
@@ -113,7 +121,7 @@ const Yordle: FunctionComponent = () => {
   }, [loading, guesses, puzzle, maxFails])
   let resultString = useMemo(() => {
     if (loading || !puzzle || !maxFails || state === "") return ""
-    let result = `Yordle #${puzzleNumber} ${rowResults.length}/${maxFails}\n${rowResults.join("\n")}`
+    let result = `Tordle #${puzzleNumber} ${rowResults.length}/${maxFails}\n${rowResults.join("\n")}`
     if (state === "fail") result += "💀"
     if (alsoShareLink) result += `\n${window.location.href}`
     return result
@@ -164,7 +172,7 @@ const Yordle: FunctionComponent = () => {
   }
 
   function goRandom() {
-    let phrase = Math.floor(Math.random() * phrases.length)
+    let phrase = Math.floor(Math.random() * NUM_COMMON_WORDS)
     let url = location.pathname + "?" + new URLSearchParams({ n: phrase.toString() })
     navigate(url)
     resetScroll()
@@ -181,125 +189,141 @@ const Yordle: FunctionComponent = () => {
 
   })
 
-  const saveKey = "hangman"
+  const saveKey = "tordle"
   let [puzzleToSave, puzzleNumberToSave] = useMemo(()=>{
+    if (loading || !puzzle) return [undefined, undefined]
     let saveData = loadPuzzleData(puzzle, puzzleNumber, day, saveKey)
     if (saveData) {
-      let guessed = getProp( saveData, "guessed", {})
-      console.log("guessed: ", Object.entries(guessed))
-      setGuessed(guessed)
-      // Reveal what's been guessed
-      setRevealed(puzzle.split("").map((c: string) => {
-        if (!alpha.includes(c)) return c
-        let g = getProp(guessed, c.toUpperCase(), undefined)
-        if (g === 1 || g === -1) return c
-        return undefined
-      }))
-      // Total up failures
-      setFails(Object.entries(guessed).reduce((total,[_,val]) => val === -1 ? total+1 : total, 0))
+      let guesses = getProp( saveData, "guesses", [])
+      console.log("guesses: ", guesses)
+      setGuesses(guesses)
+      // MEDEL: Do we need any of these steps anymore?
+      // // Reveal what's been guessed
+      // setRevealed(puzzle.split("").map((c: string) => {
+      //   if (!alpha.includes(c)) return c
+      //   let g = getProp(guessed, c.toUpperCase(), undefined)
+      //   if (g === 1 || g === -1) return c
+      //   return undefined
+      // }))
+      // // Total up failures
+      // setFails(Object.entries(guessed).reduce((total,[_,val]) => val === -1 ? total+1 : total, 0))
     }
     else {
       // Reset everything for a fresh start
-      setGuessed({})
-      setRevealed(puzzle.split("").map((c: string) => {
-        if (!alpha.includes(c)) return c
-        return undefined
-      }))
-      setFails(0)
+      if (yesterdaysPuzzle) setGuesses([yesterdaysPuzzle])
+      else setGuesses([])
+      // setRevealed(puzzle.split("").map((c: string) => {
+      //   if (!alpha.includes(c)) return c
+      //   return undefined
+      // }))
+      // setFails(0)
     }
     return [puzzle, puzzleNumber]
-  }, [puzzle, puzzleNumber])
+  }, [loading, puzzle, yesterdaysPuzzle, puzzleNumber])
 
   useEffect(() => {
+    if (loading || !puzzleToSave || !puzzleNumberToSave) return
     if (Object.entries(guesses).length > 0) savePuzzleData({guesses}, puzzleToSave, puzzleNumberToSave, day, saveKey)
-  }, [guesses, puzzleToSave, puzzleNumberToSave])
+  }, [loading, guesses, puzzleToSave, puzzleNumberToSave])
 
   return (
     <Box className="content">
-      <Box ref={gameRef} onKeyDown={handleKeydown} tabIndex={0} className="game" sx={{display:"flex", flexDirection:"column", outline: "0px solid transparent"}}>
-        <Box className="hbox" sx={{alignItems: "center"}}>
-          <img src="/hangman_icon.svg" alt='' style={{height: "3rem", marginRight: "8px"}}/>
-          <Typography variant="h2">Hangman</Typography>
-        </Box>
-        <Typography>Classic hangman rules. Guess letters. If its the right letter, the letter will be filled in. If you guess wrong, you get one step closer to failure.</Typography>
+      {loading ?
+        <Typography>Loading</Typography>
+      :
+        <>
+          <Box ref={gameRef} onKeyDown={handleKeydown} tabIndex={0} className="game" sx={{display:"flex", flexDirection:"column", outline: "0px solid transparent"}}>
+            <Box className="hbox" sx={{alignItems: "center"}}>
+              <img src="/tordle_icon.svg" alt='' style={{height: "3rem", marginRight: "8px"}}/>
+              <Typography variant="h2">Tordle</Typography>
+            </Box>
+            <Typography>Same rules as Wordle. Guess letters. If a letter is in the right position, the letter will show green. If a letter is wrong, it show as yellow if it still exists somewhere else in the word.<br/>For the daily puzzle, it always starts with yesterday's word as today's first clue.</Typography>
 
-        <Box sx={{display:"flex", flexDirection:"column", justifyContent:"center", mt:"auto", mb:"auto"}}>
-          {/* Display */}
-          <Box>
-            <Typography variant="h4" sx={{fontFamily:"monospace", letterSpacing:"4px", color: state === "success" ? "green" : state === "fail" ? "red" : ""}}>
-              {revealed.map( c => (c ?? "_")).join("")}
-            </Typography>
-            {state === "" ?
-              <Typography variant="h6">&nbsp;</Typography>
-              : state === "success" ?
-                <Typography variant="h6" sx={{color: "green"}}>SUCCESS!</Typography>
+            <Box sx={{display:"flex", flexDirection:"column", justifyContent:"center", mt:"auto", mb:"auto"}}>
+              {/* Display */}
+              <Box sx={{display:"flex", flexDirection:"column", gap: "8px"}}>
+                {/* <Typography variant="h4" sx={{fontFamily:"monospace", letterSpacing:"4px", color: state === "success" ? "green" : state === "fail" ? "red" : ""}}>...</Typography> */}
+                {[...Array(maxFails)].map( (_, i) =>
+                  <div key={i} style={{display:"flex", flexDirection:"row", justifyContent:"center", gap:"8px", alignItems:"center"}}>
+                    {i < rowResults.length ?
+                      [...Array((puzzle?.length ?? 1) - 1)].map( (_, j) => {
+                        let result = rowResults[i][j]
+                        return <div key={j} style={{ border: "1px solid gray", borderRadius: "5px", width: "2em", height: "2em", lineHeight: "1.9em" }}>{guesses[i][j]?.toUpperCase()}</div>
+                      })
+                    :
+                      [...Array((puzzle?.length ?? 0) -1)].map( _ =>
+                        <div style={{ border: "1px solid gray", borderRadius: "5px", width: "2em", height: "2em" }}></div>
+                      )
+                    }
+                  </div>
+                )}
+                {state === "" ?
+                  <Typography variant="h6">&nbsp;</Typography>
+                : state === "success" ?
+                  <Typography variant="h6" sx={{color: "green"}}>SUCCESS!</Typography>
                 :
-                <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
-            }
-          </Box>
-          {/* Results */}
-          <Typography variant="h6" sx={{opacity: "50%", mb: "12px"}}>
-            {resultString}
-          </Typography>
-          {/* Keyboard */}
-          {state === "" ?
-            <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
-              {keyboardUpper.map((row, r) =>
-                <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
-                  {row.map(key => {
-                    let g = getProp(guessed,key,0)
-                    return (
-                      <Button key={key} variant="outlined" disabled={ g !== 0} onClick={()=>guess(key)}
-                              sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : ""}}>
-                        {key}
-                      </Button>
-                    )
-                  })}
+                  <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
+                }
+              </Box>
+              {/* Results */}
+              <Typography variant="h6" sx={{opacity: "50%", mb: "12px"}}>
+                {resultString}
+              </Typography>
+              {/* Keyboard */}
+              {state === "" ?
+                <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
+                  {keyboardUpper.map((row, r) =>
+                    <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
+                      {row.map(key =>
+                        <Button key={key} variant="outlined" onClick={()=>guess(key)}
+                                sx={{width:"2em", minWidth:"2em", flex:"0 0", /*backgroundColor: g === 1 ? "darkgreen" : ""*/}}>
+                          {key}
+                        </Button>
+                      )}
+                    </Box>
+                  )}
                 </Box>
-              )}
-            </Box>
-            :
-            <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
-              {keyboardUpper.map((row,r) =>
-                <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
-                  {row.map(key => {
-                    let g = getProp(guessed,key,0)
-                    return (
-                      <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
-                              sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "#002200" : g === -1 ? "#220000" : ""}}>
-                        {key}
-                      </Button>
-                    )
-                  })}
+                :
+                <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
+                  {keyboardUpper.map((row,r) =>
+                    <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
+                      {row.map(key =>
+                        <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
+                                sx={{width:"2em", minWidth:"2em", flex:"0 0", /*backgroundColor: g === 1 ? "darkgreen" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "#002200" : g === -1 ? "#220000" : ""*/}}>
+                          {key}
+                        </Button>
+                      )}
+                    </Box>
+                  )}
                 </Box>
-              )}
-            </Box>
-          }
-        </Box>
-      </Box>
-
-      <Box>
-        <Typography variant="h5" sx={{textTransform: "uppercase"}}>Share</Typography>
-        <ClickAwayListener onClickAway={handleCurrCopiedTipClose}>
-          <div>
-            <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleCurrCopiedTipClose} open={showCurrCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
-              { state === "" ?
-                alsoShareLink ?
-                  <Button variant="outlined" onClick={()=>copyUrl(window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>{window.location.href}</Button>
-                  : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Puzzle Incomplete</Button>
-                : puzzleNumber !== -1 ?
-                  alsoShareLink ?
-                    <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString} {window.location.href}</Button>
-                    : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString}</Button>
-                  : alsoShareLink ?
-                    <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString} {window.location.href}</Button>
-                    : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString}</Button>
               }
-            </Tooltip>
-          </div>
-        </ClickAwayListener>
-        <FormControlLabel label="Include Link" control={<Checkbox checked={alsoShareLink} onChange={(e)=>setAlsoShareLink(e.target.checked)} />} />
-      </Box>
+            </Box>
+          </Box>
+
+          <Box>
+            <Typography variant="h5" sx={{textTransform: "uppercase"}}>Share</Typography>
+            <ClickAwayListener onClickAway={handleCurrCopiedTipClose}>
+              <div>
+                <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleCurrCopiedTipClose} open={showCurrCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
+                  { state === "" ?
+                    alsoShareLink ?
+                      <Button variant="outlined" onClick={()=>copyUrl(window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>{window.location.href}</Button>
+                      : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Puzzle Incomplete</Button>
+                    : puzzleNumber !== -1 ?
+                      alsoShareLink ?
+                        <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString} {window.location.href}</Button>
+                        : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString}</Button>
+                      : alsoShareLink ?
+                        <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString} {window.location.href}</Button>
+                        : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString}</Button>
+                  }
+                </Tooltip>
+              </div>
+            </ClickAwayListener>
+            <FormControlLabel label="Include Link" control={<Checkbox checked={alsoShareLink} onChange={(e)=>setAlsoShareLink(e.target.checked)} />} />
+          </Box>
+        </>
+      }
 
       <hr style={{margin:"24px 0px"}}/>
 
@@ -338,4 +362,4 @@ const Yordle: FunctionComponent = () => {
   );
 }
 
-export default Yordle;
+export default Tordle;

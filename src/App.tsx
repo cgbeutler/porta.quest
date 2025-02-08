@@ -40,6 +40,10 @@ function App() {
             <img src="/hangman_icon.svg" alt='' style={{height: "3rem", marginRight: "4px"}}/>
             <Typography variant="h4" sx={{pt:"3px"}}>Hangman</Typography>
           </Button>
+          <Button component={Link} to="/tordle" onClick={close} color='inherit' className="hbox" sx={{textTransform:"none", justifyContent: "start", alignItems: "center"}}>
+            <img src="/tordle_icon.svg" alt='' style={{height: "3rem", marginRight: "4px"}}/>
+            <Typography variant="h4" sx={{pt:"3px"}}>Tordle</Typography>
+          </Button>
         </Box>
       </Drawer>
     </Box>
