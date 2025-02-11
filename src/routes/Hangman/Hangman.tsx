@@ -12,6 +12,7 @@ import {alpha, keyboardUpper} from "../../lib/helpers/AlphabetHelpers";
 import {cipher, decipher} from "../../lib/helpers/CipherHelpers";
 import {daysSince} from "../../lib/helpers/DateHelpers";
 import { useSettings } from "../../lib/SettingsProvider";
+import "./hangman.css"
 
 const day = daysSince(2024, 9, 10)
  
@@ -35,6 +36,7 @@ const Hangman: FunctionComponent = () => {
   }, [searchParams])
 
   let [guessed, setGuessed] = useState<{[key:string]:undefined|1|-1}>({})
+  let [scorecard, setScorecard] = useState<string>("")
   let [revealed, setRevealed] = useState<(string|undefined)[]>([])
   let [fails, setFails] = useState(0)
   let state: ""|"success"|"fail" = useMemo(() => {
@@ -44,9 +46,36 @@ const Hangman: FunctionComponent = () => {
     }
     return "success"
   }, [fails, maxFails, revealed])
-  let resultString = useMemo(() => Array.from({length: maxFails}).map( (_,i) => i < fails ? "💀" : "💙").join(""),
+  let livesDisplay = useMemo(() => Array.from({length: maxFails}).map( (_,i) => i < fails ? "💀" : "💙").join(""),
     [fails, maxFails]
   )
+  let scorecardNoSpoilers = useMemo(() => {
+    let result: string[] = []
+    for (let c of Array.from(scorecard)) {
+      console.log(c)
+      if (c === "💀") {
+        console.log("skull")
+        result.push("💀")
+      } else if (c === "💙") {
+        console.log("heart")
+        console.log(result.length)
+        console.log(result[-1])
+        if (result.length >= 1 && result[result.length-1] === "💙") {
+          result.push("⋯")
+        } else if (result.length > 0 && result[result.length-1] === "⋯") {
+          /* No appending */
+        } else {
+          result.push("💙")
+        }
+      }
+    }
+    console.log(result)
+    if (state === "success") {
+      if (result[result.length-1] === "💙") result[result.length-1] = "💛"
+      else if (result[result.length-1] === "⋯") result.push("💛")
+    }
+    return result.join("")
+  }, [state, scorecard])
   
   let [newSecret, setNewSecret] = useState("")
   let [newMaxFails, setNewMaxFails] = useState(6)
@@ -93,6 +122,7 @@ const Hangman: FunctionComponent = () => {
     setGuessed({...guessed, [letter]: found ? 1 : -1})
     if (!found) setFails(fails+1)
     else setRevealed(newRevealed)
+    setScorecard(scorecard + (found ? "💙" : "💀"))
   }
 
   function resetScroll() {
@@ -123,8 +153,9 @@ const Hangman: FunctionComponent = () => {
     let saveData = loadPuzzleData(puzzle, puzzleNumber, day, saveKey)
     if (saveData) {
       let guessed = getProp( saveData, "guessed", {})
-      console.log("guessed: ", Object.entries(guessed))
       setGuessed(guessed)
+      let scorecard = getProp( saveData, "scorecard", {})
+      setScorecard(scorecard)
       // Reveal what's been guessed
       setRevealed(puzzle.split("").map((c: string) => {
         if (!alpha.includes(c)) return c
@@ -138,6 +169,7 @@ const Hangman: FunctionComponent = () => {
     else {
       // Reset everything for a fresh start
       setGuessed({})
+      setScorecard("")
       setRevealed(puzzle.split("").map((c: string) => {
         if (!alpha.includes(c)) return c
         return undefined
@@ -148,8 +180,8 @@ const Hangman: FunctionComponent = () => {
   }, [puzzle, puzzleNumber])
 
   useEffect(() => {
-    if (Object.entries(guessed).length > 0) savePuzzleData({guessed}, puzzleToSave, puzzleNumberToSave, day, saveKey)
-  }, [guessed, puzzleToSave, puzzleNumberToSave])
+    if (Object.entries(guessed).length > 0) savePuzzleData({guessed, scorecard}, puzzleToSave, puzzleNumberToSave, day, saveKey)
+  }, [guessed, scorecard, puzzleToSave, puzzleNumberToSave])
 
   return (
     <Box className="content">
@@ -163,20 +195,16 @@ const Hangman: FunctionComponent = () => {
         <Box sx={{display:"flex", flexDirection:"column", justifyContent:"center", mt:"auto", mb:"auto"}}>
           {/* Display */}
           <Box>
-            <Typography variant="h4" sx={{fontFamily:"monospace", letterSpacing:"4px", color: state === "success" ? "green" : state === "fail" ? "red" : ""}}>
+            <Typography variant="h4" className={`${state}`} sx={{fontFamily:"monospace", letterSpacing:"4px"}}>
               {revealed.map( c => (c ?? "_")).join("")}
             </Typography>
-            {state === "" ?
-              <Typography variant="h6">&nbsp;</Typography>
-            : state === "success" ?
-              <Typography variant="h6" sx={{color: "green"}}>SUCCESS!</Typography>
-            :
-              <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
-            }
+            <Typography variant="h6" className={`${state}`}>
+              {state === "" ? "" : state === "success" ? "SUCCESS!" : "FAILURE"}
+            </Typography>
           </Box>
           {/* Results */}
           <Typography variant="h6" sx={{opacity: "50%", mb: "12px"}}>
-            {resultString}
+            {livesDisplay}
           </Typography>
           {/* Keyboard */}
           {state === "" ?
@@ -186,8 +214,11 @@ const Hangman: FunctionComponent = () => {
                   {row.map(key => {
                     let g = getProp(guessed,key,0)
                     return (
-                      <Button key={key} variant="outlined" disabled={ g !== 0} onClick={()=>guess(key)}
-                        sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : ""}}>
+                      <Button key={key} variant="outlined"
+                        disabled={ g !== 0} onClick={()=>guess(key)}
+                        className={`keyboard-button ${g === 1 ? "success" : ""}`}
+                        sx={{width:"2em", minWidth:"2em", flex:"0 0"}}
+                      >
                           {key}
                       </Button>
                     )
@@ -202,8 +233,11 @@ const Hangman: FunctionComponent = () => {
                   {row.map(key => {
                     let g = getProp(guessed,key,0)
                     return (
-                      <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
-                        sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: g === 1 ? "darkgreen" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "#002200" : g === -1 ? "#220000" : ""}}>
+                      <Button key={key} variant="outlined"
+                        disabled={true} onClick={()=>{}}
+                        className={`keyboard-button ${g === 1 ? "success" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "missed" : g === -1 ? "fail" : ""}`}
+                        sx={{width:"2em", minWidth:"2em", flex:"0 0"}}
+                      >
                           {key}
                       </Button>
                     )
@@ -226,11 +260,11 @@ const Hangman: FunctionComponent = () => {
                 : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Puzzle Incomplete</Button>
               : puzzleNumber !== -1 ?
                 settings.value.alsoShareLink ?
-                  <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString} {window.location.href}</Button>
-                : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString}</Button>
+                  <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+scorecardNoSpoilers+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {scorecardNoSpoilers} {window.location.href}</Button>
+                : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+scorecardNoSpoilers)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {scorecardNoSpoilers}</Button>
               : settings.value.alsoShareLink ?
-                <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString} {window.location.href}</Button>
-              : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString}</Button>
+                <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+scorecardNoSpoilers+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {scorecardNoSpoilers} {window.location.href}</Button>
+              : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+scorecardNoSpoilers)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {scorecardNoSpoilers}</Button>
               }
             </Tooltip>
           </div>

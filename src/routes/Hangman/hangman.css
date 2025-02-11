@@ -1,0 +1,57 @@
+h1.success,
+h2.success,
+h3.success,
+h4.success,
+h5.success,
+h6.success {
+  color: hsl(219, 79%, 60%);
+}
+
+h1.fail,
+h2.fail,
+h3.fail,
+h4.fail,
+h5.fail,
+h6.fail {
+  color: hsl(0, 45%, 50%);
+}
+
+
+button.keyboard-button {
+  background-color: hsl(219, 75%, 7%);
+  border-color: hsl(219, 20%, 50%);
+}
+
+button.keyboard-button.Mui-disabled {
+  background-color: hsl(0, 0%, 4%);
+  font-weight: bold;
+  border-color: hsl(0, 0%, 8%);
+}
+
+button.keyboard-button.success {
+  background-color: hsl(219, 79%, 59%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(219, 79%, 59%);
+}
+
+button.keyboard-button.success.Mui-disabled {
+  background-color: hsl(219, 79%, 59%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(219, 79%, 59%);
+}
+
+button.keyboard-button.missed.Mui-disabled {
+  background-color: hsl(219, 79%, 30%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(219, 79%, 30%);
+}
+
+button.keyboard-button.fail.Mui-disabled {
+  background-color: hsl(0, 45%, 20%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(0, 45%, 20%);
+}
