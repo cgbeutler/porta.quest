@@ -13,6 +13,7 @@ import {cipher, decipher} from "../../lib/helpers/CipherHelpers";
 import {daysSince} from "../../lib/helpers/DateHelpers";
 import { useSettings } from "../../lib/SettingsProvider";
 import "./hangman.css"
+import { chunk } from "../../lib/helpers/StringHelpers";
 
 const day = daysSince(2024, 9, 10)
  
@@ -49,32 +50,13 @@ const Hangman: FunctionComponent = () => {
   let livesDisplay = useMemo(() => Array.from({length: maxFails}).map( (_,i) => i < fails ? "💀" : "💙").join(""),
     [fails, maxFails]
   )
-  let scorecardNoSpoilers = useMemo(() => {
-    let result: string[] = []
-    for (let c of Array.from(scorecard)) {
-      console.log(c)
-      if (c === "💀") {
-        console.log("skull")
-        result.push("💀")
-      } else if (c === "💙") {
-        console.log("heart")
-        console.log(result.length)
-        console.log(result[-1])
-        if (result.length >= 1 && result[result.length-1] === "💙") {
-          result.push("⋯")
-        } else if (result.length > 0 && result[result.length-1] === "⋯") {
-          /* No appending */
-        } else {
-          result.push("💙")
-        }
-      }
+  let scorecardShareStr = useMemo(() => {
+    let result: string[] = [...chunk(scorecard, 12)]
+    let resultStr: string = result.join("\n")
+    if (state === "success" && resultStr.endsWith("💙")) {
+      resultStr = resultStr.slice(0,resultStr.length-2) + "💛";
     }
-    console.log(result)
-    if (state === "success") {
-      if (result[result.length-1] === "💙") result[result.length-1] = "💛"
-      else if (result[result.length-1] === "⋯") result.push("💛")
-    }
-    return result.join("")
+    return resultStr
   }, [state, scorecard])
   
   let [newSecret, setNewSecret] = useState("")
@@ -260,11 +242,11 @@ const Hangman: FunctionComponent = () => {
                 : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Puzzle Incomplete</Button>
               : puzzleNumber !== -1 ?
                 settings.value.alsoShareLink ?
-                  <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+scorecardNoSpoilers+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {scorecardNoSpoilers} {window.location.href}</Button>
-                : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+scorecardNoSpoilers)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {scorecardNoSpoilers}</Button>
+                  <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+":\n"+scorecardShareStr+"\n"+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}:<br/>{scorecardShareStr.split("\n").map(s=><>{s}<br/></>)}{window.location.href}</Button>
+                : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+":\n"+scorecardShareStr)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}:<br/>{scorecardShareStr.split("\n").map(s=><>{s}<br/></>)}</Button>
               : settings.value.alsoShareLink ?
-                <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+scorecardNoSpoilers+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {scorecardNoSpoilers} {window.location.href}</Button>
-              : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+scorecardNoSpoilers)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {scorecardNoSpoilers}</Button>
+                <Button variant="outlined" onClick={()=>copyUrl("Hangman Score:\n"+scorecardShareStr+"\n"+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score:<br/>{scorecardShareStr.split("\n").map(s=><>{s}<br/></>)}{window.location.href}</Button>
+              : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score:\n"+scorecardShareStr)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score:<br/>{scorecardShareStr.split("\n").map(s=><>{s}<br/></>)}</Button>
               }
             </Tooltip>
           </div>
