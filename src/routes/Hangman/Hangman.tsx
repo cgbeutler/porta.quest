@@ -53,8 +53,8 @@ const Hangman: FunctionComponent = () => {
   let scorecardShareStr = useMemo(() => {
     let result: string[] = [...chunk(scorecard, 12)]
     let resultStr: string = result.join("\n")
-    if (state === "success" && resultStr.endsWith("💙")) {
-      resultStr = resultStr.slice(0,resultStr.length-2) + "💛";
+    if (state === "success" && !resultStr.includes("💀") && resultStr.includes("💙")) {
+      resultStr = resultStr.replaceAll("💙", "💛")
     }
     return resultStr
   }, [state, scorecard])
