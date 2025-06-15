@@ -1,4 +1,4 @@
-export function* chunk<T>(arr:Array<T>, n:number) { for (let i = 0; i < arr.length; i += n) { yield arr.slice(i, i + n); } }
+export function* chunk<T>(arr:Array<T>, n:number): Generator<T[], void> { for (let i = 0; i < arr.length; i += n) { yield arr.slice(i, i + n); } }
 export function groupBy<T extends {[key: string]: any}>(arr: Array<T>, keyLookup: string | ((obj: T)=>string)): {[key: string]: Array<T>} {
   return arr.reduce( function(grouped: {[key: string]: Array<T>}, curr: T) {
     let key = keyLookup instanceof Function ? keyLookup(curr) : curr[(<string>keyLookup)];
