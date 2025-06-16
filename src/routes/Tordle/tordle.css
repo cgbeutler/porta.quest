@@ -1,0 +1,110 @@
+h1.success,
+h2.success,
+h3.success,
+h4.success,
+h5.success,
+h6.success {
+  color: hsl(219, 79%, 60%);
+}
+
+h1.fail,
+h2.fail,
+h3.fail,
+h4.fail,
+h5.fail,
+h6.fail {
+  color: hsl(0, 45%, 50%);
+}
+
+
+.result-box {
+  background-color: hsl(219, 75%, 7%);
+  border-color: hsl(219, 20%, 50%);
+  border-radius: 5px;
+  width: 2em;
+  height: 2em;
+  line-height: 1.9em;
+}
+.result-box.hit {
+  background-color: hsl(219, 79%, 59%);
+  color: black;
+  font-weight: bold;
+  border-top: 2px solid hsl(219, 79%, 69%);
+}
+.result-box.almost {
+  background-color: hsl(54, 79%, 35%);
+  color: black;
+  font-weight: bold;
+  border-top: 2px solid hsl(54, 79%, 45%);
+}
+.result-box.miss {
+  background-color: hsl(0, 0%, 10%);
+  color: hsl(0, 0%, 75%);
+  border-top: 2px solid hsl(0, 0%, 20%);
+}
+.result-box.current {
+  background-color: hsl(219, 0%, 9%);
+  color: hsl(0, 0%, 75%);
+  border-top: 2px solid hsl(0, 0%, 20%);
+}
+.result-box.upcoming {
+  background-color: hsl(0, 0%, 5%);
+  color: hsl(0, 0%, 75%);
+  border-bottom: 2px solid hsl(0, 0%, 3%);
+  border-bottom: 2px solid hsl(0, 0%, 12%);
+}
+
+
+
+.keyboard-button {
+  background-color: hsl(219, 75%, 7%);
+  border-color: hsl(219, 20%, 50%);
+}
+
+.keyboard-button.Mui-disabled {
+  background-color: hsl(0, 0%, 4%);
+  font-weight: bold;
+  border-color: hsl(0, 0%, 8%);
+}
+
+.keyboard-button.hit {
+  background-color: hsl(219, 79%, 59%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(219, 79%, 59%);
+}
+
+.keyboard-button.hit.Mui-disabled {
+  background-color: hsl(219, 79%, 59%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(219, 79%, 59%);
+}
+
+.keyboard-button.almost {
+  background-color: hsl(54, 79%, 35%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(54, 79%, 40%);
+}
+
+.keyboard-button.almost.Mui-disabled {
+  background-color: hsl(54, 79%, 35%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(54, 79%, 40%);
+}
+
+.keyboard-button.miss {
+  background-color: hsl(0, 0%, 5%);
+  color: hsl(0, 0%, 50%);
+  border-color: hsl(0, 0%, 20%);
+}
+
+
+.keyboard-button.miss.Mui-disabled {
+  background-color: hsl(0, 45%, 20%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(0, 45%, 20%);
+}

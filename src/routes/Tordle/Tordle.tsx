@@ -1,4 +1,5 @@
-﻿import CopyIcon from '@mui/icons-material/ContentCopy';
+import "./tordle.css"
+import CopyIcon from '@mui/icons-material/ContentCopy';
 import NorthEastIcon from '@mui/icons-material/NorthEast';
 import {
   Box,
@@ -13,15 +14,15 @@ import {
 } from "@mui/material";
 import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { getDictionaries, getDictionary } from "../../lib/Dictionaries";
-import { keyboardUpper } from "../../lib/helpers/AlphabetHelpers";
+import { getNDictionary, getNDictionaryCommon, NDictionary } from "../../lib/NDictionary";
+import { alphaUpper, keyboardUpper } from "../../lib/helpers/AlphabetHelpers";
 import { cipher, decipher } from "../../lib/helpers/CipherHelpers";
 import { copyToClipboard } from "../../lib/helpers/ClipboardHelpers";
 import { daysSince } from "../../lib/helpers/DateHelpers";
 import { clamp } from "../../lib/helpers/MathHelpers";
 import { getProp } from "../../lib/helpers/ObjectHelpers";
 import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
-import { Dictionary } from '../../lib/helpers/Dictionary';
+import { replaceAt } from '../../lib/helpers/StringHelpers';
 
 const NUM_COMMON_WORDS = 2296;
 const HIT = "🟩"
@@ -36,39 +37,40 @@ const Tordle: FunctionComponent = () => {
   const gameRef = useRef<HTMLElement>()
 
   const [loading, setLoading] = useState(true)
-  const [commonWords, setCommonWords] = useState<Dictionary|undefined>()
-  const [dictionary, setDictionary] = useState<Dictionary|undefined>()
+  const [commonWords, setCommonWords] = useState<NDictionary|undefined>()
+  const [dictionary, setDictionary] = useState<NDictionary|undefined>()
   const [puzzle, setPuzzle] = useState<string|undefined>()
   const [yesterdaysPuzzle, setYesterdaysPuzzle] = useState<string|undefined>()
   const [puzzleNumber, setPuzzleNumber] = useState<number|undefined>()
   const [maxFails, setMaxFails] = useState<number|undefined>()
+  const [currGuess, setCurrGuess] = useState<string>("")
+  const [guessError, setGuessError] = useState<string>(" ")
   const [guesses, setGuesses] = useState<string[]>([])
   const [alsoShareLink, setAlsoShareLink] = useState(false)
 
   useEffect(() => {
     setLoading(true)
     // See if we have a specific puzzle
-    let guesses = Number.parseInt(searchParams.get("g") ?? "6")??6
+    let newMaxFails = Number.parseInt(searchParams.get("g") ?? "6")??6
     let cipheredPuzzle = searchParams.get("a")
     if (cipheredPuzzle) {
       // Load puzzle from query string
-      let dictFile = ""
-      if (cipheredPuzzle.length >= 3 && cipheredPuzzle.length < 13 ) dictFile = `dictionary${cipheredPuzzle.length}.txt`
-      else if (cipheredPuzzle.length >= 13) dictFile = "dictionary13plus.txt"
       const clearPuzzle = decipher(cipheredPuzzle)
-      if (dictFile) getDictionary(dictFile).then(d => {
-        setDictionary(new Dictionary(d))
-        setPuzzle(clearPuzzle)
-        setPuzzleNumber(-1)
-        setMaxFails(guesses)
-        setLoading(false)
-      }).catch(() => {
+      try {
+        const d = getNDictionary(clearPuzzle.length).then(d => {
+          setDictionary(d)
+          setPuzzle(clearPuzzle.toUpperCase())
+          setPuzzleNumber(-1)
+          setMaxFails(newMaxFails)
+          setLoading(false)
+        })
+      } catch {
         setDictionary(undefined)
         setPuzzle(undefined)
         setPuzzleNumber(undefined)
         setMaxFails(undefined)
         setLoading(false)
-      })
+      }
       return
     }
     // Load the day-number's puzzle
@@ -76,18 +78,18 @@ const Tordle: FunctionComponent = () => {
     let puzzleNumber = puzzleNumberRaw ? Number.parseInt(puzzleNumberRaw) : NaN;
     // If no number, use today's puzzle
     if (!Number.isInteger(puzzleNumber)) puzzleNumber = day
-    getDictionaries([`common_words5.txt`, `dictionary5.txt`]).then(d => {
-      const commonWords = new Dictionary(d[`common_words5.txt`])
-      const puzzle = commonWords.psudorandomWord(puzzleNumber)
-      const yesterday = commonWords.psudorandomWord(puzzleNumber - 1)
-      setCommonWords(commonWords)
-      setDictionary(new Dictionary(d[`dictionary5.txt`]))
-      setPuzzle(puzzle)
-      setYesterdaysPuzzle(yesterday)
-      setPuzzleNumber(puzzleNumber)
-      setMaxFails(guesses)
-      setLoading(false)
-      setGuesses([yesterday])
+    getNDictionary(5).then(d => {
+      getNDictionaryCommon(5).then(dc => {
+        const puzzle = dc.pseudorandomWord(puzzleNumber)
+        const yesterday = dc.pseudorandomWord(puzzleNumber - 1)
+        setCommonWords(dc)
+        setDictionary(d)
+        setPuzzle(puzzle.toUpperCase())
+        setYesterdaysPuzzle(yesterday.toUpperCase())
+        setPuzzleNumber(puzzleNumber)
+        setMaxFails(newMaxFails)
+        setLoading(false)
+      })
     }).catch(() => {
       setDictionary(undefined)
       setPuzzle(undefined)
@@ -103,26 +105,74 @@ const Tordle: FunctionComponent = () => {
     if (guesses.length >= maxFails) return "fail"
     return ""
   }, [loading, guesses, puzzle, maxFails])
-  let rowResults = useMemo(() => {
+
+  let rowResults = useMemo<string[][]>(() => {
     if (loading || !puzzle || !maxFails) return []
-    const results: string[] = []
-    for (const guess in guesses) {
-      let result: string = "" 
-      for (let i = 0; i < guess.length; i++) {
-        const letter = guess[i]
-        if (puzzle[i] === letter) result += HIT
-        else if (puzzle.includes(letter)) result += ALMOST
-        else result += MISS
-        // TODO: We forgot the duplicate letter rule, I think
+    const results: string[][] = []
+    console.log(guesses)
+    for (let gi = 0; gi < guesses.length; gi++) {
+      let guess = guesses[gi]
+      let rowResult: string[] = Array(puzzle.length).fill(MISS)
+      let puzzleCopy = puzzle
+      for (let li = 0; li < guess.length; li++) {
+        const letter = guess[li]
+        if (puzzleCopy[li] === letter) {
+          rowResult[li] = HIT
+          puzzleCopy = replaceAt(puzzleCopy, li, '!')
+        }
       }
-      results.push(result)
+      for (let li = 0; li < guess.length; li++) {
+        const letter = guess[li]
+        if (puzzleCopy.includes(letter)) {
+          rowResult[li] = ALMOST
+          let index = puzzleCopy.indexOf(letter)
+          puzzleCopy = replaceAt(puzzleCopy, index, '!')
+        }
+      }
+      console.log(rowResult)
+      results.push(rowResult)
     }
     return results
   }, [loading, guesses, puzzle, maxFails])
+
+  let guessedLetters = useMemo<{[key:string]: string}>(() => {
+    if (loading || !puzzle || !maxFails) return {}
+    const results: {[key:string]: string} = Object.fromEntries(alphaUpper.map(l => [l, ""]))
+    for (let gi = 0; gi < guesses.length; gi++) {
+      let guess = guesses[gi]
+      let puzzleCopy = puzzle
+      for (let li = 0; li < guess.length; li++) {
+        const letter = guess[li]
+        if (puzzleCopy[li] === letter) {
+          results[letter] = HIT
+          puzzleCopy = replaceAt(puzzleCopy, li, '!')
+        }
+      }
+      for (let li = 0; li < guess.length; li++) {
+        const letter = guess[li]
+        if (puzzleCopy.includes(letter)) {
+          if (results[letter] === "") results[letter] = ALMOST
+          let index = puzzleCopy.indexOf(letter)
+          puzzleCopy = replaceAt(puzzleCopy, index, '!')
+        }
+        else if (!puzzle.includes(letter)) {
+          results[letter] = MISS
+        }
+      }
+    }
+    console.log(results)
+    return results
+  }, [loading, guesses, puzzle, maxFails])
+
   let resultString = useMemo(() => {
     if (loading || !puzzle || !maxFails || state === "") return ""
-    let result = `Tordle #${puzzleNumber} ${rowResults.length}/${maxFails}\n${rowResults.join("\n")}`
+    let rowResultStrings = rowResults.map((row,r) => yesterdaysPuzzle && r === 0 ? "(" + row.join("") + ")" : row.join("")).join("\n")
+    let result = `Tordle #${puzzleNumber} ${yesterdaysPuzzle ? rowResults.length - 1 : rowResults.length}/${yesterdaysPuzzle ? maxFails - 1 : maxFails}\n${rowResultStrings}`
     if (state === "fail") result += "💀"
+    if (state === "success") {
+      if ((yesterdaysPuzzle && guesses.length > 2) || (!yesterdaysPuzzle && guesses.length > 1)) result += "💙"
+      else result += "💛"
+    }
     if (alsoShareLink) result += `\n${window.location.href}`
     return result
   }, [alsoShareLink, loading, puzzle, maxFails, state, puzzleNumber, rowResults])
@@ -156,14 +206,39 @@ const Tordle: FunctionComponent = () => {
     }
   }
 
-  function guess(word: string) {
+  function addLetter(letter: string) {
+    if (puzzle == null) return
     if (state !== "") return // Game is over
-    word = word.toUpperCase()
-    for (let guess in guesses) {
-      if (guess === word) return // Already Guessed
-      // TODO: Show error of already guessed
+    if (currGuess.length >= puzzle.length) return
+    const newGuess = currGuess + letter.toUpperCase()
+    setCurrGuess(newGuess)
+  }
+
+  function removeLetter() {
+    if (puzzle == null) return
+    if (state !== "") return // Game is over
+    if (currGuess.length === 0) return
+    setGuessError(" ")
+    const newGuess = currGuess.slice(0,-1)
+    setCurrGuess(newGuess)
+  }
+
+  function enterGuess() {
+    if (puzzle == null) return
+    if (state !== "") return // Game is over
+    if (currGuess.length !== puzzle.length) return
+    for (let gi = 0; gi < guesses.length; gi++) {
+      if (guesses[gi] === currGuess) {
+        setGuessError("Already Guessed")
+        return
+      }
     }
-    setGuesses(guesses.concat([word]))
+    if (!dictionary?.containsWord(currGuess)) {
+        setGuessError("Word not in Dictionary")
+        return
+    }
+    setGuesses(guesses.concat([currGuess]))
+    setCurrGuess("")
   }
 
   function resetScroll() {
@@ -180,14 +255,12 @@ const Tordle: FunctionComponent = () => {
 
   function handleKeydown(event: React.KeyboardEvent) {
     if (event.key.length !== 1) return // May be "Dead" or other special values
-    if (event.key >= 'A' && event.key <= 'Z') guess(event.key)
-    if (event.key >= 'a' && event.key <= 'z') guess(event.key)
+    if (event.key >= 'A' && event.key <= 'Z') addLetter(event.key)
+    if (event.key >= 'a' && event.key <= 'z') addLetter(event.key)
+    if (event.key === 'Backspace') removeLetter()
+    if (event.key === 'Enter') enterGuess()
     if (event.key === ' ') event.preventDefault()
   }
-
-  useEffect(()=>{
-
-  })
 
   const saveKey = "tordle"
   let [puzzleToSave, puzzleNumberToSave] = useMemo(()=>{
@@ -195,35 +268,20 @@ const Tordle: FunctionComponent = () => {
     let saveData = loadPuzzleData(puzzle, puzzleNumber, day, saveKey)
     if (saveData) {
       let guesses = getProp( saveData, "guesses", [])
-      console.log("guesses: ", guesses)
+      console.log("Loaded guesses: ", guesses)
       setGuesses(guesses)
-      // MEDEL: Do we need any of these steps anymore?
-      // // Reveal what's been guessed
-      // setRevealed(puzzle.split("").map((c: string) => {
-      //   if (!alpha.includes(c)) return c
-      //   let g = getProp(guessed, c.toUpperCase(), undefined)
-      //   if (g === 1 || g === -1) return c
-      //   return undefined
-      // }))
-      // // Total up failures
-      // setFails(Object.entries(guessed).reduce((total,[_,val]) => val === -1 ? total+1 : total, 0))
     }
     else {
       // Reset everything for a fresh start
       if (yesterdaysPuzzle) setGuesses([yesterdaysPuzzle])
       else setGuesses([])
-      // setRevealed(puzzle.split("").map((c: string) => {
-      //   if (!alpha.includes(c)) return c
-      //   return undefined
-      // }))
-      // setFails(0)
     }
     return [puzzle, puzzleNumber]
   }, [loading, puzzle, yesterdaysPuzzle, puzzleNumber])
 
   useEffect(() => {
     if (loading || !puzzleToSave || !puzzleNumberToSave) return
-    if (Object.entries(guesses).length > 0) savePuzzleData({guesses}, puzzleToSave, puzzleNumberToSave, day, saveKey)
+    if (Object.entries(guesses).length > 1) savePuzzleData({guesses}, puzzleToSave, puzzleNumberToSave, day, saveKey)
   }, [loading, guesses, puzzleToSave, puzzleNumberToSave])
 
   return (
@@ -237,22 +295,25 @@ const Tordle: FunctionComponent = () => {
               <img src="/tordle_icon.svg" alt='' style={{height: "3rem", marginRight: "8px"}}/>
               <Typography variant="h2">Tordle</Typography>
             </Box>
-            <Typography>Same rules as Wordle. Guess letters. If a letter is in the right position, the letter will show green. If a letter is wrong, it show as yellow if it still exists somewhere else in the word.<br/>For the daily puzzle, it always starts with yesterday's word as today's first clue.</Typography>
+            <Typography>Same rules as Wordle, but each day starts with yesterday's word.</Typography>
 
             <Box sx={{display:"flex", flexDirection:"column", justifyContent:"center", mt:"auto", mb:"auto"}}>
               {/* Display */}
               <Box sx={{display:"flex", flexDirection:"column", gap: "8px"}}>
-                {/* <Typography variant="h4" sx={{fontFamily:"monospace", letterSpacing:"4px", color: state === "success" ? "green" : state === "fail" ? "red" : ""}}>...</Typography> */}
                 {[...Array(maxFails)].map( (_, i) =>
                   <div key={i} style={{display:"flex", flexDirection:"row", justifyContent:"center", gap:"8px", alignItems:"center"}}>
                     {i < rowResults.length ?
-                      [...Array((puzzle?.length ?? 1) - 1)].map( (_, j) => {
+                      [...Array(puzzle?.length ?? 1)].map( (_, j) => {
                         let result = rowResults[i][j]
-                        return <div key={j} style={{ border: "1px solid gray", borderRadius: "5px", width: "2em", height: "2em", lineHeight: "1.9em" }}>{guesses[i][j]?.toUpperCase()}</div>
+                        return <div key={j} className={`result-box ${result === HIT ? "hit" : result === ALMOST ? "almost" : result === MISS ? "miss" : ""}`}>{guesses[i][j]?.toUpperCase()}</div>
                       })
+                    : i === rowResults.length ?
+                      [...Array(puzzle?.length ?? 0)].map( (_, j) =>
+                        <div key={j} className="result-box current">{currGuess[j]}</div>
+                      )
                     :
-                      [...Array((puzzle?.length ?? 0) -1)].map( _ =>
-                        <div style={{ border: "1px solid gray", borderRadius: "5px", width: "2em", height: "2em" }}></div>
+                      [...Array(puzzle?.length ?? 0)].map( (_, j) =>
+                        <div key={j}  className="result-box upcoming"></div>
                       )
                     }
                   </div>
@@ -260,26 +321,35 @@ const Tordle: FunctionComponent = () => {
                 {state === "" ?
                   <Typography variant="h6">&nbsp;</Typography>
                 : state === "success" ?
-                  <Typography variant="h6" sx={{color: "green"}}>SUCCESS!</Typography>
+                  <Typography variant="h6" classes="success" sx={{color: "green"}}>SUCCESS!</Typography>
                 :
-                  <Typography variant="h6" sx={{color: "red"}}>FAILURE</Typography>
+                  <Typography variant="h6" classes="fail" sx={{color: "red"}}>FAILURE</Typography>
                 }
               </Box>
-              {/* Results */}
-              <Typography variant="h6" sx={{opacity: "50%", mb: "12px"}}>
-                {resultString}
-              </Typography>
+              <Typography variant="h6">{guessError}</Typography>
               {/* Keyboard */}
               {state === "" ?
                 <Box sx={{display:"flex", flexDirection:"column", flexWrap:"nowrap", alignItems:"center", gap: "4px"}}>
                   {keyboardUpper.map((row, r) =>
                     <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
+                      { r !== 2 ? undefined :
+                        <Button variant="outlined" color="secondary" onClick={removeLetter}
+                                sx={{width:"5em", minWidth:"5em", flex:"0 0"}}>
+                          ⌫
+                        </Button>
+                      }
                       {row.map(key =>
-                        <Button key={key} variant="outlined" onClick={()=>guess(key)}
-                                sx={{width:"2em", minWidth:"2em", flex:"0 0", /*backgroundColor: g === 1 ? "darkgreen" : ""*/}}>
+                        <Button className={`keyboard-button ${guessedLetters[key] === HIT ? "hit" : guessedLetters[key] === ALMOST ? "almost" : guessedLetters[key] === MISS ? "miss" : ""}` } key={key} variant="outlined" onClick={()=>addLetter(key)}
+                                sx={{width:"2em", minWidth:"2em", flex:"0 0"}}>
                           {key}
                         </Button>
                       )}
+                      { r !== 2 ? undefined :
+                        <Button className="keyboard-button" variant="outlined" disabled={currGuess.length !== puzzle?.length} onClick={enterGuess}
+                                sx={{width:"4.5em", minWidth:"5em", flex:"0 0", fontWeight: "bold"}}>
+                          Enter
+                        </Button>
+                      }
                     </Box>
                   )}
                 </Box>
@@ -289,7 +359,7 @@ const Tordle: FunctionComponent = () => {
                     <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
                       {row.map(key =>
                         <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
-                                sx={{width:"2em", minWidth:"2em", flex:"0 0", /*backgroundColor: g === 1 ? "darkgreen" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "#002200" : g === -1 ? "#220000" : ""*/}}>
+                                sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: guessedLetters[key] === HIT ? "darkgreen" : guessedLetters[key] === ALMOST ? "brown" : guessedLetters[key] === MISS ? "gray" : ""}}>
                           {key}
                         </Button>
                       )}
@@ -307,15 +377,9 @@ const Tordle: FunctionComponent = () => {
                 <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleCurrCopiedTipClose} open={showCurrCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
                   { state === "" ?
                     alsoShareLink ?
-                      <Button variant="outlined" onClick={()=>copyUrl(window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>{window.location.href}</Button>
-                      : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Puzzle Incomplete</Button>
-                    : puzzleNumber !== -1 ?
-                      alsoShareLink ?
-                        <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString} {window.location.href}</Button>
-                        : <Button variant="outlined" onClick={()=>copyUrl("Hangman #"+puzzleNumber+": "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman #{puzzleNumber}: {resultString}</Button>
-                      : alsoShareLink ?
-                        <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString+" "+window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString} {window.location.href}</Button>
-                        : <Button variant="outlined" onClick={()=>copyUrl("Hangman Score: "+resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere"}}>Hangman Score: {resultString}</Button>
+                      <Button variant="outlined" onClick={()=>copyUrl(window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere",textAlign:"left"}}>{window.location.href}</Button>
+                      : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere",textAlign:"left"}}>Puzzle Incomplete</Button>
+                    : <Button variant="outlined" onClick={()=>copyUrl(resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere",textAlign:"left"}}>{resultString.split("\n").map(s=><>{s}<br/></>)}</Button>
                   }
                 </Tooltip>
               </div>
@@ -325,7 +389,7 @@ const Tordle: FunctionComponent = () => {
         </>
       }
 
-      <hr style={{margin:"24px 0px"}}/>
+      {/* <hr style={{margin:"24px 0px"}}/>
 
       <Box className="vbox" sx={{display:"flex", flexDirection:"column"}}>
         <Typography variant="h5" sx={{textTransform: "uppercase"}}>New Puzzle</Typography>
@@ -357,7 +421,7 @@ const Tordle: FunctionComponent = () => {
             </>
           }
         </Box>
-      </Box>
+      </Box> */}
     </Box>
   );
 }
