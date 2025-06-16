@@ -1,4 +1,4 @@
-﻿import { psudorand } from "./helpers/RandomHelpers";
+import { psudorand } from "./helpers/RandomHelpers";
 
 const cache: {[file: string]: NDictionary} = {}
 
@@ -19,7 +19,7 @@ export class NDictionary {
   }
 
   containsWord(word: string): boolean {
-    return this.contents.indexOf(word) >= 0;
+    return this.contents.indexOf(word.toLowerCase()) >= 0;
   }
 
   getWord(index: number): string | undefined {

@@ -58,13 +58,15 @@ const Tordle: FunctionComponent = () => {
       const clearPuzzle = decipher(cipheredPuzzle)
       try {
         const d = getNDictionary(clearPuzzle.length).then(d => {
+          console.log("loaded dictionary")
           setDictionary(d)
           setPuzzle(clearPuzzle.toUpperCase())
           setPuzzleNumber(-1)
           setMaxFails(newMaxFails)
           setLoading(false)
         })
-      } catch {
+      } catch (err) {
+        console.error(`error loading dictionary: ${err}`)
         setDictionary(undefined)
         setPuzzle(undefined)
         setPuzzleNumber(undefined)
@@ -80,6 +82,7 @@ const Tordle: FunctionComponent = () => {
     if (!Number.isInteger(puzzleNumber)) puzzleNumber = day
     getNDictionary(5).then(d => {
       getNDictionaryCommon(5).then(dc => {
+        console.log("loaded dictionary")
         const puzzle = dc.pseudorandomWord(puzzleNumber)
         const yesterday = dc.pseudorandomWord(puzzleNumber - 1)
         setCommonWords(dc)
@@ -90,7 +93,8 @@ const Tordle: FunctionComponent = () => {
         setMaxFails(newMaxFails)
         setLoading(false)
       })
-    }).catch(() => {
+    }).catch((err) => {
+      console.error(`error loading dictionary: ${err}`)
       setDictionary(undefined)
       setPuzzle(undefined)
       setPuzzleNumber(undefined)
@@ -175,7 +179,7 @@ const Tordle: FunctionComponent = () => {
     }
     if (alsoShareLink) result += `\n${window.location.href}`
     return result
-  }, [alsoShareLink, loading, puzzle, maxFails, state, puzzleNumber, rowResults])
+  }, [alsoShareLink, loading, puzzle, maxFails, state, puzzleNumber, rowResults, guesses, yesterdaysPuzzle])
 
   let [newSecret, setNewSecret] = useState("")
   let [newMaxFails, setNewMaxFails] = useState(6)
@@ -321,9 +325,9 @@ const Tordle: FunctionComponent = () => {
                 {state === "" ?
                   <Typography variant="h6">&nbsp;</Typography>
                 : state === "success" ?
-                  <Typography variant="h6" classes="success" sx={{color: "green"}}>SUCCESS!</Typography>
+                  <Typography variant="h6" className="success" sx={{color: "green"}}>SUCCESS!</Typography>
                 :
-                  <Typography variant="h6" classes="fail" sx={{color: "red"}}>FAILURE</Typography>
+                  <Typography variant="h6" className="fail" sx={{color: "red"}}>FAILURE</Typography>
                 }
               </Box>
               <Typography variant="h6">{guessError}</Typography>
@@ -359,7 +363,8 @@ const Tordle: FunctionComponent = () => {
                     <Box key={r} sx={{display:"flex", flexDirection:"row", flexWrap:"nowrap", justifyContent:"center", gap: "4px"}}>
                       {row.map(key =>
                         <Button key={key} variant="outlined" disabled={true} onClick={()=>{}}
-                                sx={{width:"2em", minWidth:"2em", flex:"0 0", backgroundColor: guessedLetters[key] === HIT ? "darkgreen" : guessedLetters[key] === ALMOST ? "brown" : guessedLetters[key] === MISS ? "gray" : ""}}>
+                                className={`keyboard-button ${guessedLetters[key] === HIT ? "hit" : guessedLetters[key] === ALMOST ? "almost" : guessedLetters[key] === MISS ? "miss" : ""}` }
+                                sx={{width:"2em", minWidth:"2em", flex:"0 0"}}>
                           {key}
                         </Button>
                       )}
