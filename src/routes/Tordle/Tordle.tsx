@@ -15,7 +15,7 @@ import {
 import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { /*Link, useLocation, useNavigate,*/ useSearchParams } from "react-router-dom";
 import { getNDictionary, getNDictionaryCommon, NDictionary } from "../../lib/NDictionary";
-import { alphaUpper, keyboardUpper } from "../../lib/helpers/AlphabetHelpers";
+import { alphaLower, alphaUpper, keyboardUpper } from "../../lib/helpers/AlphabetHelpers";
 import { /*cipher,*/ decipher } from "../../lib/helpers/CipherHelpers";
 import { copyToClipboard } from "../../lib/helpers/ClipboardHelpers";
 import { daysSince } from "../../lib/helpers/DateHelpers";
@@ -62,6 +62,7 @@ const Tordle: FunctionComponent = () => {
           setPuzzleNumber(-1)
           setMaxFails(newMaxFails)
           setLoading(false)
+          gameRef?.current?.focus()
         })
       } catch (err) {
         console.error(`error loading dictionary: ${err}`)
@@ -89,6 +90,7 @@ const Tordle: FunctionComponent = () => {
         setPuzzleNumber(puzzleNumber)
         setMaxFails(newMaxFails)
         setLoading(false)
+        gameRef?.current?.focus()
       })
     }).catch((err) => {
       console.error(`error loading dictionary: ${err}`)
@@ -213,6 +215,7 @@ const Tordle: FunctionComponent = () => {
     if (currGuess.length >= puzzle.length) return
     const newGuess = currGuess + letter.toUpperCase()
     setCurrGuess(newGuess)
+    gameRef?.current?.focus()
   }
 
   function removeLetter() {
@@ -222,6 +225,7 @@ const Tordle: FunctionComponent = () => {
     setGuessError(" ")
     const newGuess = currGuess.slice(0,-1)
     setCurrGuess(newGuess)
+    gameRef?.current?.focus()
   }
 
   function enterGuess() {
@@ -231,15 +235,18 @@ const Tordle: FunctionComponent = () => {
     for (let gi = 0; gi < guesses.length; gi++) {
       if (guesses[gi] === currGuess) {
         setGuessError("Already Guessed")
+        gameRef?.current?.focus()
         return
       }
     }
     if (!dictionary?.containsWord(currGuess)) {
-        setGuessError("Word not in Dictionary")
-        return
+      setGuessError("Word not in Dictionary")
+      gameRef?.current?.focus()
+      return
     }
     setGuesses(guesses.concat([currGuess]))
     setCurrGuess("")
+    gameRef?.current?.focus()
   }
 
   // function resetScroll() {
@@ -255,12 +262,13 @@ const Tordle: FunctionComponent = () => {
   // }
 
   function handleKeydown(event: React.KeyboardEvent) {
-    if (event.key.length !== 1) return // May be "Dead" or other special values
-    if (event.key >= 'A' && event.key <= 'Z') addLetter(event.key)
-    if (event.key >= 'a' && event.key <= 'z') addLetter(event.key)
-    if (event.key === 'Backspace') removeLetter()
-    if (event.key === 'Enter') enterGuess()
-    if (event.key === ' ') event.preventDefault()
+    console.log(event.key)
+    if (alphaUpper.includes(event.key as any)) addLetter(event.key)
+    else if (alphaLower.includes(event.key as any)) addLetter(event.key)
+    else if (event.key === 'Backspace') removeLetter()
+    else if (event.key === 'Enter') { enterGuess(); event.preventDefault() }
+    else if (event.key === ' ') event.preventDefault()
+    gameRef?.current?.focus()
   }
 
   const saveKey = "tordle"
