@@ -26,7 +26,7 @@ export class NDictionary {
     const start = this.wordsStart + index * (this.wordLen+1);
     const end = start+ (this.wordLen);
     if (start > this.contentsLength) return undefined;
-    if (end == this.contentsLength) return this.contents.slice(start);
+    if (end === this.contentsLength) return this.contents.slice(start);
     if (end > this.contentsLength) return this.contents.slice(start);
     return this.contents.slice(start, end)
   }
@@ -40,7 +40,7 @@ export class NDictionary {
 }
 
 export async function getNDictionary(wordLength: number): Promise<NDictionary> {
-  if (wordLength < 3 || wordLength == 26 || wordLength == 30 || wordLength > 31) throw new Error("Not implemented. Out of range.");
+  if (wordLength < 3 || wordLength === 26 || wordLength === 30 || wordLength > 31) throw new Error("Not implemented. Out of range.");
 
   const filename = `dictionary${wordLength}.txt`;
   if (filename in cache) return cache[filename];
@@ -52,7 +52,7 @@ export async function getNDictionary(wordLength: number): Promise<NDictionary> {
 }
 
 export async function getNDictionaryCommon(wordLength: number): Promise<NDictionary> {
-  if (wordLength != 5) throw new Error("Not implemented. Out of range.");
+  if (wordLength !== 5) throw new Error("Not implemented. Out of range.");
 
   const filename = `common_words${wordLength}.txt`;
   if (filename in cache) return cache[filename];

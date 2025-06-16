@@ -1,30 +1,29 @@
 import "./tordle.css"
 import CopyIcon from '@mui/icons-material/ContentCopy';
-import NorthEastIcon from '@mui/icons-material/NorthEast';
+// import NorthEastIcon from '@mui/icons-material/NorthEast';
 import {
   Box,
   Button,
   Checkbox,
   ClickAwayListener,
   FormControlLabel,
-  IconButton,
-  TextField,
+  // IconButton,
+  // TextField,
   Tooltip,
   Typography
 } from "@mui/material";
 import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { /*Link, useLocation, useNavigate,*/ useSearchParams } from "react-router-dom";
 import { getNDictionary, getNDictionaryCommon, NDictionary } from "../../lib/NDictionary";
 import { alphaUpper, keyboardUpper } from "../../lib/helpers/AlphabetHelpers";
-import { cipher, decipher } from "../../lib/helpers/CipherHelpers";
+import { /*cipher,*/ decipher } from "../../lib/helpers/CipherHelpers";
 import { copyToClipboard } from "../../lib/helpers/ClipboardHelpers";
 import { daysSince } from "../../lib/helpers/DateHelpers";
-import { clamp } from "../../lib/helpers/MathHelpers";
+// import { clamp } from "../../lib/helpers/MathHelpers";
 import { getProp } from "../../lib/helpers/ObjectHelpers";
 import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
 import { replaceAt } from '../../lib/helpers/StringHelpers';
 
-const NUM_COMMON_WORDS = 2296;
 const HIT = "🟩"
 const ALMOST = "🟨"
 const MISS = "⬛"
@@ -32,12 +31,11 @@ const day = daysSince(2024, 9, 10)
 
 const Tordle: FunctionComponent = () => {
   const [searchParams] = useSearchParams()
-  const location = useLocation()
-  const navigate = useNavigate()
+  // const location = useLocation()
+  // const navigate = useNavigate()
   const gameRef = useRef<HTMLElement>()
 
   const [loading, setLoading] = useState(true)
-  const [commonWords, setCommonWords] = useState<NDictionary|undefined>()
   const [dictionary, setDictionary] = useState<NDictionary|undefined>()
   const [puzzle, setPuzzle] = useState<string|undefined>()
   const [yesterdaysPuzzle, setYesterdaysPuzzle] = useState<string|undefined>()
@@ -57,7 +55,7 @@ const Tordle: FunctionComponent = () => {
       // Load puzzle from query string
       const clearPuzzle = decipher(cipheredPuzzle)
       try {
-        const d = getNDictionary(clearPuzzle.length).then(d => {
+        getNDictionary(clearPuzzle.length).then(d => {
           console.log("loaded dictionary")
           setDictionary(d)
           setPuzzle(clearPuzzle.toUpperCase())
@@ -85,7 +83,6 @@ const Tordle: FunctionComponent = () => {
         console.log("loaded dictionary")
         const puzzle = dc.pseudorandomWord(puzzleNumber)
         const yesterday = dc.pseudorandomWord(puzzleNumber - 1)
-        setCommonWords(dc)
         setDictionary(d)
         setPuzzle(puzzle.toUpperCase())
         setYesterdaysPuzzle(yesterday.toUpperCase())
@@ -181,15 +178,15 @@ const Tordle: FunctionComponent = () => {
     return result
   }, [alsoShareLink, loading, puzzle, maxFails, state, puzzleNumber, rowResults, guesses, yesterdaysPuzzle])
 
-  let [newSecret, setNewSecret] = useState("")
-  let [newMaxFails, setNewMaxFails] = useState(6)
-  let newUrl = useMemo(()=>{
-    if (!newSecret) return undefined
-    return window.location.origin + location.pathname + "?" + new URLSearchParams({
-      a: cipher(newSecret),
-      g: clamp(newMaxFails,1).toString()
-    })
-  }, [location.pathname, newSecret, newMaxFails])
+  // let [newSecret, setNewSecret] = useState("")
+  // let [newMaxFails, setNewMaxFails] = useState(6)
+  // let newUrl = useMemo(()=>{
+  //   if (!newSecret) return undefined
+  //   return window.location.origin + location.pathname + "?" + new URLSearchParams({
+  //     a: cipher(newSecret),
+  //     g: clamp(newMaxFails,1).toString()
+  //   })
+  // }, [location.pathname, newSecret, newMaxFails])
 
   const [showCurrCopied, setShowCurrCopied] = useState(false);
   const handleCurrCopiedTipClose = () => {setShowCurrCopied(false)}
@@ -200,15 +197,15 @@ const Tordle: FunctionComponent = () => {
     }
   }
 
-  const [showNewCopied, setShowNewCopied] = useState(false);
-  const handleNewCopiedTipClose = () => {setShowNewCopied(false)}
-  const copyNewUrl = () => {
-    if (!newUrl) return
-    if (copyToClipboard(newUrl)) {
-      setShowNewCopied(true)
-      setTimeout(handleNewCopiedTipClose, 500)
-    }
-  }
+  // const [showNewCopied, setShowNewCopied] = useState(false);
+  // const handleNewCopiedTipClose = () => {setShowNewCopied(false)}
+  // const copyNewUrl = () => {
+  //   if (!newUrl) return
+  //   if (copyToClipboard(newUrl)) {
+  //     setShowNewCopied(true)
+  //     setTimeout(handleNewCopiedTipClose, 500)
+  //   }
+  // }
 
   function addLetter(letter: string) {
     if (puzzle == null) return
@@ -245,17 +242,17 @@ const Tordle: FunctionComponent = () => {
     setCurrGuess("")
   }
 
-  function resetScroll() {
-    window.scrollTo(0,0)
-    gameRef?.current?.focus()
-  }
+  // function resetScroll() {
+  //   window.scrollTo(0,0)
+  //   gameRef?.current?.focus()
+  // }
 
-  function goRandom() {
-    let phrase = Math.floor(Math.random() * NUM_COMMON_WORDS)
-    let url = location.pathname + "?" + new URLSearchParams({ n: phrase.toString() })
-    navigate(url)
-    resetScroll()
-  }
+  // function goRandom() {
+  //   let phrase = Math.floor(Math.random() * NUM_COMMON_WORDS)
+  //   let url = location.pathname + "?" + new URLSearchParams({ n: phrase.toString() })
+  //   navigate(url)
+  //   resetScroll()
+  // }
 
   function handleKeydown(event: React.KeyboardEvent) {
     if (event.key.length !== 1) return // May be "Dead" or other special values
