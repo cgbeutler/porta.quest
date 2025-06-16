@@ -24,7 +24,7 @@ import { getProp } from "../../lib/helpers/ObjectHelpers";
 import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
 import { replaceAt } from '../../lib/helpers/StringHelpers';
 
-const HIT = "🟩"
+const HIT = "🟦"
 const ALMOST = "🟨"
 const MISS = "⬛"
 const day = daysSince(2024, 9, 10)
