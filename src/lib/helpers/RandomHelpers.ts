@@ -1,4 +1,4 @@
-﻿
+
 // from https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript splitMix32
 export function psudorand(a: number) {
   a |= 0;

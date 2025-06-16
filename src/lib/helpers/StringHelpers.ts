@@ -16,15 +16,15 @@ export function getLine(s:string, n:number): string | undefined {
   let start = 0
   let end = s.indexOf("\n")
   while (line < n) {
-    if (end == -1) return undefined
+    if (end === -1) return undefined
     ++line;
     start = end+1;
     if (start >= len) {
-      return line == n ? "" : undefined;
+      return line === n ? "" : undefined;
     }
     end = s.indexOf("\n", start);
   }
-  return end == -1 ? s.slice(start) : s.slice(start, end);
+  return end === -1 ? s.slice(start) : s.slice(start, end);
 }
 
 export function replaceAt(s:string, index: number, replacement: string) {
