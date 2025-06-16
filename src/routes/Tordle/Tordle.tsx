@@ -62,7 +62,6 @@ const Tordle: FunctionComponent = () => {
           setPuzzleNumber(-1)
           setMaxFails(newMaxFails)
           setLoading(false)
-          gameRef?.current?.focus()
         })
       } catch (err) {
         console.error(`error loading dictionary: ${err}`)
@@ -90,7 +89,6 @@ const Tordle: FunctionComponent = () => {
         setPuzzleNumber(puzzleNumber)
         setMaxFails(newMaxFails)
         setLoading(false)
-        gameRef?.current?.focus()
       })
     }).catch((err) => {
       console.error(`error loading dictionary: ${err}`)
@@ -292,6 +290,10 @@ const Tordle: FunctionComponent = () => {
     if (loading || !puzzleToSave || !puzzleNumberToSave) return
     if (Object.entries(guesses).length > 1) savePuzzleData({guesses}, puzzleToSave, puzzleNumberToSave, day, saveKey)
   }, [loading, guesses, puzzleToSave, puzzleNumberToSave])
+
+  useEffect(()=>{
+    gameRef?.current?.focus()
+  }, [])
 
   return (
     <Box className="content">

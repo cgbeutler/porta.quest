@@ -27,7 +27,9 @@ const Hangman: FunctionComponent = () => {
   let [puzzle, puzzleNumber, maxFails] = useMemo(() => {
     let guesses = Number.parseInt(searchParams.get("g") ?? "6")??6
     let cipheredPuzzle = searchParams.get("a")
-    if (cipheredPuzzle) return [decipher(cipheredPuzzle), -1, guesses]
+    if (cipheredPuzzle) {
+      return [decipher(cipheredPuzzle), -1, guesses]
+    }
     let puzzleNumberRaw = searchParams.get("n")
     let puzzleNumber = puzzleNumberRaw ? Number.parseInt(puzzleNumberRaw) : NaN;
     if (!Number.isInteger(puzzleNumber)) puzzleNumber = day
@@ -127,8 +129,8 @@ const Hangman: FunctionComponent = () => {
   }
 
   useEffect(()=>{
-    
-  })
+    gameRef?.current?.focus()
+  }, [])
 
   const saveKey = "hangman"
   let [puzzleToSave, puzzleNumberToSave] = useMemo(()=>{
