@@ -56,12 +56,12 @@ const Tordle: FunctionComponent = () => {
       const clearPuzzle = decipher(cipheredPuzzle)
       try {
         getNDictionary(clearPuzzle.length).then(d => {
-          console.log("loaded dictionary")
           setDictionary(d)
           setPuzzle(clearPuzzle.toUpperCase())
           setPuzzleNumber(-1)
           setMaxFails(newMaxFails)
           setLoading(false)
+          gameRef?.current?.focus()
         })
       } catch (err) {
         console.error(`error loading dictionary: ${err}`)
@@ -80,7 +80,6 @@ const Tordle: FunctionComponent = () => {
     if (!Number.isInteger(puzzleNumber)) puzzleNumber = day
     getNDictionary(5).then(d => {
       getNDictionaryCommon(5).then(dc => {
-        console.log("loaded dictionary")
         const puzzle = dc.pseudorandomWord(puzzleNumber)
         const yesterday = dc.pseudorandomWord(puzzleNumber - 1)
         setDictionary(d)
@@ -89,6 +88,7 @@ const Tordle: FunctionComponent = () => {
         setPuzzleNumber(puzzleNumber)
         setMaxFails(newMaxFails)
         setLoading(false)
+        gameRef?.current?.focus()
       })
     }).catch((err) => {
       console.error(`error loading dictionary: ${err}`)
@@ -110,7 +110,6 @@ const Tordle: FunctionComponent = () => {
   let rowResults = useMemo<string[][]>(() => {
     if (loading || !puzzle || !maxFails) return []
     const results: string[][] = []
-    console.log(guesses)
     for (let gi = 0; gi < guesses.length; gi++) {
       let guess = guesses[gi]
       let rowResult: string[] = Array(puzzle.length).fill(MISS)
@@ -130,7 +129,6 @@ const Tordle: FunctionComponent = () => {
           puzzleCopy = replaceAt(puzzleCopy, index, '!')
         }
       }
-      console.log(rowResult)
       results.push(rowResult)
     }
     return results
@@ -161,7 +159,6 @@ const Tordle: FunctionComponent = () => {
         }
       }
     }
-    console.log(results)
     return results
   }, [loading, guesses, puzzle, maxFails])
 
@@ -260,7 +257,6 @@ const Tordle: FunctionComponent = () => {
   // }
 
   function handleKeydown(event: React.KeyboardEvent) {
-    console.log(event.key)
     if (alphaUpper.includes(event.key as any)) addLetter(event.key)
     else if (alphaLower.includes(event.key as any)) addLetter(event.key)
     else if (event.key === 'Backspace') removeLetter()
@@ -275,7 +271,6 @@ const Tordle: FunctionComponent = () => {
     let saveData = loadPuzzleData(puzzle, puzzleNumber, day, saveKey)
     if (saveData) {
       let guesses = getProp( saveData, "guesses", [])
-      console.log("Loaded guesses: ", guesses)
       setGuesses(guesses)
     }
     else {
