@@ -23,6 +23,7 @@ import { daysSince } from "../../lib/helpers/DateHelpers";
 import { getProp } from "../../lib/helpers/ObjectHelpers";
 import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
 import { replaceAt } from '../../lib/helpers/StringHelpers';
+import { useSettings } from "../../lib/SettingsProvider";
 
 const HIT = "🟦"
 const ALMOST = "🟨"
@@ -33,6 +34,7 @@ const Tordle: FunctionComponent = () => {
   const [searchParams] = useSearchParams()
   // const location = useLocation()
   // const navigate = useNavigate()
+  const settings = useSettings();
   const gameRef = useRef<HTMLElement>()
 
   const [loading, setLoading] = useState(true)
@@ -44,7 +46,6 @@ const Tordle: FunctionComponent = () => {
   const [currGuess, setCurrGuess] = useState<string>("")
   const [guessError, setGuessError] = useState<string>(" ")
   const [guesses, setGuesses] = useState<string[]>([])
-  const [alsoShareLink, setAlsoShareLink] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -171,9 +172,9 @@ const Tordle: FunctionComponent = () => {
       if ((yesterdaysPuzzle && guesses.length > 2) || (!yesterdaysPuzzle && guesses.length > 1)) result += "💙"
       else result += "💛"
     }
-    if (alsoShareLink) result += `\n${window.location.href}`
+    if (settings.value.alsoShareLink) result += `\n${window.location.href}`
     return result
-  }, [alsoShareLink, loading, puzzle, maxFails, state, puzzleNumber, rowResults, guesses, yesterdaysPuzzle])
+  }, [settings.value.alsoShareLink, loading, puzzle, maxFails, state, puzzleNumber, rowResults, guesses, yesterdaysPuzzle])
 
   // let [newSecret, setNewSecret] = useState("")
   // let [newMaxFails, setNewMaxFails] = useState(6)
@@ -383,7 +384,7 @@ const Tordle: FunctionComponent = () => {
               <div>
                 <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleCurrCopiedTipClose} open={showCurrCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
                   { state === "" ?
-                    alsoShareLink ?
+                    settings.value.alsoShareLink ?
                       <Button variant="outlined" onClick={()=>copyUrl(window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere",textAlign:"left"}}>{window.location.href}</Button>
                       : <Button variant="outlined" onClick={()=>{}} endIcon={<CopyIcon/>} disabled sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere",textAlign:"left"}}>Puzzle Incomplete</Button>
                     : <Button variant="outlined" onClick={()=>copyUrl(resultString)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere",textAlign:"left"}}>{resultString.split("\n").map(s=><>{s}<br/></>)}</Button>
@@ -391,7 +392,7 @@ const Tordle: FunctionComponent = () => {
                 </Tooltip>
               </div>
             </ClickAwayListener>
-            <FormControlLabel label="Include Link" control={<Checkbox checked={alsoShareLink} onChange={(e)=>setAlsoShareLink(e.target.checked)} />} />
+            <FormControlLabel label="Include Link" control={<Checkbox checked={settings.value.alsoShareLink} onChange={(e)=>settings.update({alsoShareLink: e.target.checked})} />} />
           </Box>
         </>
       }
