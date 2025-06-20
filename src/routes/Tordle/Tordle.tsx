@@ -116,17 +116,15 @@ const Tordle: FunctionComponent = () => {
       let rowResult: string[] = Array(puzzle.length).fill(MISS)
       let puzzleCopy = puzzle
       for (let li = 0; li < guess.length; li++) {
-        const letter = guess[li]
-        if (puzzleCopy[li] === letter) {
+        if (puzzleCopy[li] === guess[li]) {
           rowResult[li] = HIT
           puzzleCopy = replaceAt(puzzleCopy, li, '!')
         }
       }
       for (let li = 0; li < guess.length; li++) {
-        const letter = guess[li]
-        if (puzzleCopy.includes(letter)) {
+        if (rowResult[li] === MISS && puzzleCopy.includes(guess[li])) {
           rowResult[li] = ALMOST
-          let index = puzzleCopy.indexOf(letter)
+          let index = puzzleCopy.indexOf(guess[li])
           puzzleCopy = replaceAt(puzzleCopy, index, '!')
         }
       }
