@@ -313,9 +313,15 @@ const Tordle: FunctionComponent = () => {
                         return <div key={j} className={`result-box ${result === HIT ? "hit" : result === ALMOST ? "almost" : result === MISS ? "miss" : ""}`}>{guesses[i][j]?.toUpperCase()}</div>
                       })
                     : i === rowResults.length ?
-                      [...Array(puzzle?.length ?? 0)].map( (_, j) =>
-                        <div key={j} className="result-box current">{currGuess[j]}</div>
-                      )
+                      [...Array(puzzle?.length ?? 0)].map( (_, j) => {
+                        let matches = guesses.reduce(
+                          (prev, curr, x) => {
+                            return curr[j] === currGuess[j] && rowResults[x][j] !== HIT ? prev + 1 : prev + 0
+                          },
+                          0,
+                        )
+                        return <div key={j} className={`result-box current ${matches > 0 ? 'miss' : ''}`}>{currGuess[j]}</div>
+                      })
                     :
                       [...Array(puzzle?.length ?? 0)].map( (_, j) =>
                         <div key={j}  className="result-box upcoming"></div>

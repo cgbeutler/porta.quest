@@ -49,7 +49,8 @@ const Hangman: FunctionComponent = () => {
     }
     return "success"
   }, [fails, maxFails, revealed])
-  let livesDisplay = useMemo(() => Array.from({length: maxFails}).map( (_,i) => i < fails ? "💀" : "💙").join(""),
+  let livesDisplay = useMemo(
+    () => Array.from({length: maxFails}).map( (_,i) => i < fails ? "💀" : "💙").join(""),
     [fails, maxFails]
   )
   let scorecardShareStr = useMemo(() => {
@@ -179,8 +180,9 @@ const Hangman: FunctionComponent = () => {
         <Box sx={{display:"flex", flexDirection:"column", justifyContent:"center", mt:"auto", mb:"auto"}}>
           {/* Display */}
           <Box>
-            <Typography variant="h4" className={`${state}`} sx={{fontFamily:"monospace", letterSpacing:"4px"}}>
+            <Typography variant="h4" className={`${state}`} sx={{fontFamily:"monospace", letterSpacing:"4px", position: "relative"}}>
               {revealed.map( c => (c ?? "_")).join("")}
+              <Typography variant="h4" className={`${state}`} sx={{fontFamily:"monospace", letterSpacing:"4px", position: "absolute", left:0, right:0, top:0, bottom:0}}>{revealed.map( c => ((c && alpha.includes(c)? "_" : c) ?? "_")).join("")}</Typography>
             </Typography>
             <Typography variant="h6" className={`${state}`}>
               {state === "" ? "" : state === "success" ? "SUCCESS!" : "FAILURE"}

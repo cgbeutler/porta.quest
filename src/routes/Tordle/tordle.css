@@ -4,7 +4,7 @@ h3.success,
 h4.success,
 h5.success,
 h6.success {
-  color: hsl(219, 79%, 60%);
+  color: hsl(54, 79%, 45%);
 }
 
 h1.fail,
@@ -25,13 +25,13 @@ h6.fail {
   height: 2em;
   line-height: 1.9em;
 }
-.result-box.hit {
+.result-box.almost {
   background-color: hsl(219, 79%, 59%);
   color: black;
   font-weight: bold;
   border-top: 2px solid hsl(219, 79%, 69%);
 }
-.result-box.almost {
+.result-box.hit {
   background-color: hsl(54, 79%, 35%);
   color: black;
   font-weight: bold;
@@ -46,6 +46,12 @@ h6.fail {
   background-color: hsl(219, 0%, 9%);
   color: hsl(0, 0%, 75%);
   border-top: 2px solid hsl(0, 0%, 20%);
+}
+.result-box.current.miss {
+  background-color: hsl(0, 82%, 13%);
+  color: hsl(0, 78%, 75%);
+  border-color: hsl(0, 31%, 46%);
+  border-top: 2px solid hsl(0, 12%, 19%);
 }
 .result-box.upcoming {
   background-color: hsl(0, 0%, 5%);
@@ -67,28 +73,28 @@ h6.fail {
   border-color: hsl(0, 0%, 8%);
 }
 
-.keyboard-button.hit {
-  background-color: hsl(219, 79%, 59%);
-  color: black;
-  font-weight: bold;
-  border-color: hsl(219, 79%, 59%);
-}
-
-.keyboard-button.hit.Mui-disabled {
-  background-color: hsl(219, 79%, 59%);
-  color: black;
-  font-weight: bold;
-  border-color: hsl(219, 79%, 59%);
-}
-
 .keyboard-button.almost {
+  background-color: hsl(219, 79%, 59%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(219, 79%, 59%);
+}
+
+.keyboard-button.almost.Mui-disabled {
+  background-color: hsl(219, 79%, 59%);
+  color: black;
+  font-weight: bold;
+  border-color: hsl(219, 79%, 59%);
+}
+
+.keyboard-button.hit {
   background-color: hsl(54, 79%, 35%);
   color: black;
   font-weight: bold;
   border-color: hsl(54, 79%, 40%);
 }
 
-.keyboard-button.almost.Mui-disabled {
+.keyboard-button.hit.Mui-disabled {
   background-color: hsl(54, 79%, 35%);
   color: black;
   font-weight: bold;
