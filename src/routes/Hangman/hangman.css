@@ -28,21 +28,21 @@ button.keyboard-button.Mui-disabled {
   border-color: hsl(0, 0%, 8%);
 }
 
-button.keyboard-button.success {
-  background-color: hsl(219, 79%, 59%);
+button.keyboard-button.hit {
+  background-color: hsl(54, 79%, 35%);
   color: black;
   font-weight: bold;
-  border-color: hsl(219, 79%, 59%);
+  border-color: hsl(54, 79%, 40%);
 }
 
-button.keyboard-button.success.Mui-disabled {
-  background-color: hsl(219, 79%, 59%);
+button.keyboard-button.hit.Mui-disabled {
+  background-color: hsl(54, 79%, 35%);
   color: black;
   font-weight: bold;
-  border-color: hsl(219, 79%, 59%);
+  border-color: hsl(54, 79%, 40%);
 }
 
-button.keyboard-button.missed.Mui-disabled {
+button.keyboard-button.miss.Mui-disabled {
   background-color: hsl(219, 79%, 30%);
   color: black;
   font-weight: bold;

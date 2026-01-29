@@ -202,7 +202,7 @@ const Hangman: FunctionComponent = () => {
                     return (
                       <Button key={key} variant="outlined"
                         disabled={ g !== 0} onClick={()=>guess(key)}
-                        className={`keyboard-button ${g === 1 ? "success" : ""}`}
+                        className={`keyboard-button ${g === 1 ? "hit" : ""}`}
                         sx={{width:"2em", minWidth:"2em", flex:"0 0"}}
                       >
                           {key}
@@ -221,7 +221,7 @@ const Hangman: FunctionComponent = () => {
                     return (
                       <Button key={key} variant="outlined"
                         disabled={true} onClick={()=>{}}
-                        className={`keyboard-button ${g === 1 ? "success" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "missed" : g === -1 ? "fail" : ""}`}
+                        className={`keyboard-button ${g === 1 ? "hit" : puzzle.includes(key) || puzzle.includes(key.toLocaleLowerCase()) ? "miss" : g === -1 ? "fail" : ""}`}
                         sx={{width:"2em", minWidth:"2em", flex:"0 0"}}
                       >
                           {key}
