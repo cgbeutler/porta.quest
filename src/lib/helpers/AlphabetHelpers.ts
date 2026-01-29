@@ -8,3 +8,7 @@ export const keyboardUpper = [
   [ "A","S","D","F","G","H","J","K","L"],
   [     "Z","X","C","V","B","N","M"],
 ] as const
+
+export function onlyLettersCaseInsensitive(str: string) {
+  return /^[a-z]+$/i.test(str);
+}

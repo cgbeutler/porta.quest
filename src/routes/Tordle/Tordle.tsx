@@ -7,19 +7,19 @@ import {
   Checkbox,
   ClickAwayListener,
   FormControlLabel,
-  // IconButton,
-  // TextField,
+  IconButton,
+  TextField,
   Tooltip,
   Typography
 } from "@mui/material";
 import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { /*Link, useLocation, */useNavigate, Link, useSearchParams } from "react-router-dom";
 import { getNDictionary, getNDictionaryCommon, NDictionary } from "../../lib/NDictionary";
-import { alphaLower, alphaUpper, keyboardUpper } from "../../lib/helpers/AlphabetHelpers";
-import { /*cipher,*/ decipher } from "../../lib/helpers/CipherHelpers";
+import { alphaLower, alphaUpper, keyboardUpper, onlyLettersCaseInsensitive } from "../../lib/helpers/AlphabetHelpers";
+import { cipher, decipher } from "../../lib/helpers/CipherHelpers";
 import { copyToClipboard } from "../../lib/helpers/ClipboardHelpers";
 import { daysSince } from "../../lib/helpers/DateHelpers";
-// import { clamp } from "../../lib/helpers/MathHelpers";
+import { clamp } from "../../lib/helpers/MathHelpers";
 import { getProp } from "../../lib/helpers/ObjectHelpers";
 import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
 import { replaceAt } from '../../lib/helpers/StringHelpers';
@@ -60,15 +60,18 @@ const Tordle: FunctionComponent = () => {
         getNDictionary(clearPuzzle.length).then(d => {
           setDictionary(d)
           setPuzzle(clearPuzzle.toUpperCase())
+          setYesterdaysPuzzle(undefined)
           setPuzzleNumber(-1)
           setMaxFails(newMaxFails)
           setLoading(false)
           gameRef?.current?.focus()
+          return
         })
       } catch (err) {
         console.error(`error loading dictionary: ${err}`)
         setDictionary(undefined)
         setPuzzle(undefined)
+        setYesterdaysPuzzle(undefined)
         setPuzzleNumber(undefined)
         setMaxFails(undefined)
         setLoading(false)
@@ -175,15 +178,29 @@ const Tordle: FunctionComponent = () => {
     return result
   }, [settings.value.alsoShareLink, loading, puzzle, maxFails, state, puzzleNumber, rowResults, guesses, yesterdaysPuzzle])
 
-  // let [newSecret, setNewSecret] = useState("")
-  // let [newMaxFails, setNewMaxFails] = useState(6)
-  // let newUrl = useMemo(()=>{
-  //   if (!newSecret) return undefined
-  //   return window.location.origin + location.pathname + "?" + new URLSearchParams({
-  //     a: cipher(newSecret),
-  //     g: clamp(newMaxFails,1).toString()
-  //   })
-  // }, [location.pathname, newSecret, newMaxFails])
+  let [newSecret, setNewSecret] = useState("")
+  let [newMaxFails, setNewMaxFails] = useState(6)
+  let [newSecretErrors, setNewSecretErrors] = useState<string>()
+  let newUrl = useMemo(()=>{
+    setNewSecretErrors("")
+    if (!newSecret) return undefined
+    if (newSecret.length < 3) {
+      setNewSecretErrors("Too short")
+      return undefined
+    }
+    if (newSecret.length > 31) {
+      setNewSecretErrors("Too long")
+      return undefined
+    }
+    if (!onlyLettersCaseInsensitive(newSecret)) {
+      setNewSecretErrors("Only letters allowed")
+      return undefined
+    }
+    return window.location.origin + location.pathname + "?" + new URLSearchParams({
+      a: cipher(newSecret),
+      g: clamp(newMaxFails,1).toString()
+    })
+  }, [location.pathname, newSecret, newMaxFails])
 
   const [showCurrCopied, setShowCurrCopied] = useState(false);
   const handleCurrCopiedTipClose = () => {setShowCurrCopied(false)}
@@ -194,15 +211,15 @@ const Tordle: FunctionComponent = () => {
     }
   }
 
-  // const [showNewCopied, setShowNewCopied] = useState(false);
-  // const handleNewCopiedTipClose = () => {setShowNewCopied(false)}
-  // const copyNewUrl = () => {
-  //   if (!newUrl) return
-  //   if (copyToClipboard(newUrl)) {
-  //     setShowNewCopied(true)
-  //     setTimeout(handleNewCopiedTipClose, 500)
-  //   }
-  // }
+  const [showNewCopied, setShowNewCopied] = useState(false);
+  const handleNewCopiedTipClose = () => {setShowNewCopied(false)}
+  const copyNewUrl = () => {
+    if (!newUrl) return
+    if (copyToClipboard(newUrl)) {
+      setShowNewCopied(true)
+      setTimeout(handleNewCopiedTipClose, 500)
+    }
+  }
 
   function addLetter(letter: string) {
     if (puzzle == null) return
@@ -234,7 +251,7 @@ const Tordle: FunctionComponent = () => {
         return
       }
     }
-    if (!dictionary?.containsWord(currGuess)) {
+    if (!dictionary?.containsWord(currGuess) && puzzle != currGuess) {
       setGuessError("Word not in Dictionary")
       gameRef?.current?.focus()
       return
@@ -245,6 +262,7 @@ const Tordle: FunctionComponent = () => {
   }
 
   function resetScroll() {
+    setNewSecret("")
     window.scrollTo(0,0)
     gameRef?.current?.focus()
   }
@@ -410,12 +428,12 @@ const Tordle: FunctionComponent = () => {
           <Button component={Link} to="/tordle" variant="outlined" onClick={resetScroll} endIcon={<NorthEastIcon/>} disabled={puzzleNumber===day} sx={{mb:"8px", textTransform: "uppercase"}}>Today</Button>
           <Button variant="outlined" onClick={goRandom} endIcon={<NorthEastIcon/>} sx={{mb:"8px", textTransform: "uppercase"}}>Random Day</Button>
         </Box>
-        {/* <Typography>Create your own</Typography>
+        <Typography>Create your own</Typography>
         <form className="hbox">
           <TextField label="Max Fails" type="number" value={newMaxFails} onChange={(e)=>setNewMaxFails(Number.parseInt(e.target.value))} sx={{width:"5em"}}/>
           <TextField label="Answer" value={newSecret} onChange={(e)=>setNewSecret(e.target.value)}/>
-        </form> */}
-        {/* <Box className="hbox" sx={{alignItems: "center"}}>
+        </form>
+        <Box className="hbox" sx={{alignItems: "center"}}>
           {newUrl ?
             <>
               <Button component={Link} to={newUrl} variant="outlined" endIcon={<NorthEastIcon/>} onClick={resetScroll} sx={{textTransform:"none",lineBreak:"anywhere"}}>{newUrl}</Button>
@@ -431,9 +449,10 @@ const Tordle: FunctionComponent = () => {
             <>
               <Button variant="outlined" endIcon={<NorthEastIcon/>} sx={{textTransform:"none"}} disabled>Invalid</Button>
               <IconButton aria-label="copy" onClick={()=>{}} disabled><CopyIcon/></IconButton>
+              <Typography>{newSecretErrors}</Typography>
             </>
           }
-        </Box> */}
+        </Box>
       </Box>
     </Box>
   );
