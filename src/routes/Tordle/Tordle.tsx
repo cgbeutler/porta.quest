@@ -1,6 +1,6 @@
 import "./tordle.css"
 import CopyIcon from '@mui/icons-material/ContentCopy';
-// import NorthEastIcon from '@mui/icons-material/NorthEast';
+import NorthEastIcon from '@mui/icons-material/NorthEast';
 import {
   Box,
   Button,
@@ -13,7 +13,7 @@ import {
   Typography
 } from "@mui/material";
 import React, { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
-import { /*Link, useLocation, useNavigate,*/ useSearchParams } from "react-router-dom";
+import { /*Link, useLocation, */useNavigate, Link, useSearchParams } from "react-router-dom";
 import { getNDictionary, getNDictionaryCommon, NDictionary } from "../../lib/NDictionary";
 import { alphaLower, alphaUpper, keyboardUpper } from "../../lib/helpers/AlphabetHelpers";
 import { /*cipher,*/ decipher } from "../../lib/helpers/CipherHelpers";
@@ -25,6 +25,7 @@ import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
 import { replaceAt } from '../../lib/helpers/StringHelpers';
 import { useSettings } from "../../lib/SettingsProvider";
 
+const NUM_COMMON_WORDS = 2296
 const HIT = "🟨"
 const ALMOST = "🟦"
 const MISS = "⬛"
@@ -33,7 +34,7 @@ const day = daysSince(2024, 9, 10)
 const Tordle: FunctionComponent = () => {
   const [searchParams] = useSearchParams()
   // const location = useLocation()
-  // const navigate = useNavigate()
+  const navigate = useNavigate()
   const settings = useSettings();
   const gameRef = useRef<HTMLElement>()
 
@@ -243,17 +244,17 @@ const Tordle: FunctionComponent = () => {
     gameRef?.current?.focus()
   }
 
-  // function resetScroll() {
-  //   window.scrollTo(0,0)
-  //   gameRef?.current?.focus()
-  // }
+  function resetScroll() {
+    window.scrollTo(0,0)
+    gameRef?.current?.focus()
+  }
 
-  // function goRandom() {
-  //   let phrase = Math.floor(Math.random() * NUM_COMMON_WORDS)
-  //   let url = location.pathname + "?" + new URLSearchParams({ n: phrase.toString() })
-  //   navigate(url)
-  //   resetScroll()
-  // }
+  function goRandom() {
+    let phrase = Math.floor(Math.random() * NUM_COMMON_WORDS)
+    let url = location.pathname + "?" + new URLSearchParams({ n: phrase.toString() })
+    navigate(url)
+    resetScroll()
+  }
 
   function handleKeydown(event: React.KeyboardEvent) {
     if (alphaUpper.includes(event.key as any)) addLetter(event.key)
@@ -401,20 +402,20 @@ const Tordle: FunctionComponent = () => {
         </>
       }
 
-      {/* <hr style={{margin:"24px 0px"}}/>
+      <hr style={{margin:"24px 0px"}}/>
 
       <Box className="vbox" sx={{display:"flex", flexDirection:"column"}}>
         <Typography variant="h5" sx={{textTransform: "uppercase"}}>New Puzzle</Typography>
         <Box className="hbox">
-          <Button component={Link} to="/hangman" variant="outlined" onClick={resetScroll} endIcon={<NorthEastIcon/>} disabled={puzzleNumber===day} sx={{mb:"8px", textTransform: "uppercase"}}>Today</Button>
+          <Button component={Link} to="/tordle" variant="outlined" onClick={resetScroll} endIcon={<NorthEastIcon/>} disabled={puzzleNumber===day} sx={{mb:"8px", textTransform: "uppercase"}}>Today</Button>
           <Button variant="outlined" onClick={goRandom} endIcon={<NorthEastIcon/>} sx={{mb:"8px", textTransform: "uppercase"}}>Random Day</Button>
         </Box>
-        <Typography>Create your own</Typography>
+        {/* <Typography>Create your own</Typography>
         <form className="hbox">
           <TextField label="Max Fails" type="number" value={newMaxFails} onChange={(e)=>setNewMaxFails(Number.parseInt(e.target.value))} sx={{width:"5em"}}/>
           <TextField label="Answer" value={newSecret} onChange={(e)=>setNewSecret(e.target.value)}/>
-        </form>
-        <Box className="hbox" sx={{alignItems: "center"}}>
+        </form> */}
+        {/* <Box className="hbox" sx={{alignItems: "center"}}>
           {newUrl ?
             <>
               <Button component={Link} to={newUrl} variant="outlined" endIcon={<NorthEastIcon/>} onClick={resetScroll} sx={{textTransform:"none",lineBreak:"anywhere"}}>{newUrl}</Button>
@@ -432,8 +433,8 @@ const Tordle: FunctionComponent = () => {
               <IconButton aria-label="copy" onClick={()=>{}} disabled><CopyIcon/></IconButton>
             </>
           }
-        </Box>
-      </Box> */}
+        </Box> */}
+      </Box>
     </Box>
   );
 }
