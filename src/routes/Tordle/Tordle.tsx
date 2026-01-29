@@ -25,8 +25,8 @@ import { loadPuzzleData, savePuzzleData } from "../../lib/PuzzleData";
 import { replaceAt } from '../../lib/helpers/StringHelpers';
 import { useSettings } from "../../lib/SettingsProvider";
 
-const HIT = "🟦"
-const ALMOST = "🟨"
+const HIT = "🟨"
+const ALMOST = "🟦"
 const MISS = "⬛"
 const day = daysSince(2024, 9, 10)
 
