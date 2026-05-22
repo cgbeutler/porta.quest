@@ -333,9 +333,17 @@ const Tordle: FunctionComponent = () => {
                       })
                     : i === rowResults.length ?
                       [...Array(puzzle?.length ?? 0)].map( (_, j) => {
+                        // Check if the letter was already guessed in that position
                         let matches = guesses.reduce(
                           (prev, curr, x) => {
                             return curr[j] === currGuess[j] && rowResults[x][j] !== HIT ? prev + 1 : prev + 0
+                          },
+                          0,
+                        )
+                        // Check if the letter was already determined to be a miss
+                        matches += guesses.reduce(
+                          (prev, curr, x) => {
+                            return prev + (curr.includes(currGuess[j]) && !puzzle?.includes(currGuess[j])? 1 : 0);
                           },
                           0,
                         )
