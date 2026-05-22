@@ -36,7 +36,7 @@ const Tordle: FunctionComponent = () => {
   // const location = useLocation()
   const navigate = useNavigate()
   const settings = useSettings();
-  const gameRef = useRef<HTMLElement>()
+  const gameRef = useRef<HTMLElement>(null)
 
   const [loading, setLoading] = useState(true)
   const [dictionary, setDictionary] = useState<NDictionary|undefined>()
@@ -405,7 +405,7 @@ const Tordle: FunctionComponent = () => {
             <Typography variant="h5" sx={{textTransform: "uppercase"}}>Share</Typography>
             <ClickAwayListener onClickAway={handleCurrCopiedTipClose}>
               <div>
-                <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleCurrCopiedTipClose} open={showCurrCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
+                <Tooltip slotProps={{ popper: { disablePortal: true } }} onClose={handleCurrCopiedTipClose} open={showCurrCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
                   { state === "" ?
                     settings.value.alsoShareLink ?
                       <Button variant="outlined" onClick={()=>copyUrl(window.location.href)} endIcon={<CopyIcon/>} sx={{textTransform:"none",overflow:"hidden",lineBreak:"anywhere",textAlign:"left"}}>{window.location.href}</Button>
@@ -439,7 +439,7 @@ const Tordle: FunctionComponent = () => {
               <Button component={Link} to={newUrl} variant="outlined" endIcon={<NorthEastIcon/>} onClick={resetScroll} sx={{textTransform:"none",lineBreak:"anywhere"}}>{newUrl}</Button>
               <ClickAwayListener onClickAway={handleNewCopiedTipClose}>
                 <div>
-                  <Tooltip PopperProps={{ disablePortal: true, }} onClose={handleNewCopiedTipClose} open={showNewCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
+                  <Tooltip slotProps={{ popper: { disablePortal: true } }} onClose={handleNewCopiedTipClose} open={showNewCopied} disableFocusListener disableHoverListener disableTouchListener title="Copied!" >
                     <IconButton aria-label="copy" onClick={copyNewUrl}><CopyIcon/></IconButton>
                   </Tooltip>
                 </div>
