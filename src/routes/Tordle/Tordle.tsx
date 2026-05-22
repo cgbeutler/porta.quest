@@ -333,15 +333,15 @@ const Tordle: FunctionComponent = () => {
                       })
                     : i === rowResults.length ?
                       [...Array(puzzle?.length ?? 0)].map( (_, j) => {
-                        let matches = guesses.reduce(
+                        let showMiss = guesses.reduce(
                           (prev, curr, x) => {
-                            const samePositionNoHit = curr[j] === currGuess[j] && rowResults[x][j] !== HIT ? 1 : 0;
-                            const confirmedMiss = curr.includes(currGuess[j]) && !puzzle?.includes(currGuess[j])? 1 : 0;
-                            return prev + samePositionNoHit + confirmedMiss;
+                            const samePositionNoHit = curr[j] === currGuess[j] && rowResults[x][j] !== HIT;
+                            const confirmedMiss = curr.includes(currGuess[j]) && !puzzle?.includes(currGuess[j]);
+                            return prev || samePositionNoHit || confirmedMiss;
                           },
-                          0,
+                          false,
                         )
-                        return <div key={j} className={`result-box current ${matches > 0 ? 'miss' : ''}`}>{currGuess[j]}</div>
+                        return <div key={j} className={`result-box current ${showMiss? 'miss' : ''}`}>{currGuess[j]}</div>
                       })
                     :
                       [...Array(puzzle?.length ?? 0)].map( (_, j) =>
